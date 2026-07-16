@@ -20,3 +20,13 @@ Each map folder keeps its own instructions. The editable script files are the so
 ## Important
 
 Warcraft III map binaries can be large. Final releases and temporary build output are excluded by default so the repository stays reliable and easy to download.
+
+## Syncing from Codex
+
+The live Codex project folders are linked to the matching folders in this repository. Changes made in either project therefore appear in this Git working copy immediately.
+
+After a completed and verified change, run:
+
+`powershell -ExecutionPolicy Bypass -File tools/sync-github.ps1 -Message "Describe the change"`
+
+This safely updates from GitHub, commits the WC3 changes, pushes them to `main`, and verifies that GitHub received the same commit.

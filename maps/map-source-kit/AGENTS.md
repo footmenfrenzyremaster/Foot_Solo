@@ -39,3 +39,10 @@ The output map is:
 builds/MyMap_test.w3x
 ```
 
+## GitHub sync
+
+The editable `src`, `docs`, `tools`, `basemap`, and `extracted-reference` folders are linked to this GitHub-backed workspace. After completing and verifying a change, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\Ryan1\Documents\Codex\2026-07-16\github-plugin-github-openai-curated-remote-3\tools\sync-github.ps1" -Message "Short description of the change"
+```

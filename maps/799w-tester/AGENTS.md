@@ -15,3 +15,11 @@ Rules for future Codex work:
 - Document trigger migrations in `docs/trigger_notes.md`.
 - When changing gameplay logic, update `docs/changelog.md` and `docs/known_bugs.md` when relevant.
 - World Editor and in-game testing are still required before calling a gameplay change finished.
+
+## GitHub sync
+
+The editable `src`, `docs`, and `map` folders are linked to this GitHub-backed workspace. After completing and verifying a change, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\Ryan1\Documents\Codex\2026-07-16\github-plugin-github-openai-curated-remote-3\tools\sync-github.ps1" -Message "Short description of the change"
+```
