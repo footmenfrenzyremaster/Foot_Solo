@@ -1,0 +1,301 @@
+// PASS21_HELPERS_BEGIN
+function PlayerLifecycle_ShouldRemoveInactiveUnit takes integer controllerNumber, unit whichUnit returns boolean
+    local integer unitType=0
+    local integer sourcePlayerNumber=0
+    local integer sourceTeam=0
+    if whichUnit == null then
+        return false
+    endif
+    set unitType=GetUnitTypeId(whichUnit)
+    if unitType == 'h04R' then
+        return false
+    endif
+    if unitType == 'n02G' then
+        return not PlayerLifecycle_IsConnected(controllerNumber)
+    endif
+    if unitType != 'h02Q' then
+        return true
+    endif
+    if not PlayerLifecycle_IsConnected(controllerNumber) then
+        return true
+    endif
+    set sourcePlayerNumber=udg_Destroyer_Player_Number[GetUnitUserData(whichUnit)]
+    if not PlayerLifecycle_IsPlayerNumber(sourcePlayerNumber) then
+        return true
+    endif
+    set sourceTeam=udg_teamnumber[sourcePlayerNumber]
+    if sourceTeam < 1 or sourceTeam > 4 then
+        return true
+    endif
+    if udg_teamnumber[controllerNumber] != sourceTeam then
+        return true
+    endif
+    if udg_force_defeat[sourceTeam] or not PlayerLifecycle_IsBaseAlive(sourcePlayerNumber) then
+        return true
+    endif
+    return false
+endfunction
+
+function PlayerLifecycle_RemoveDepartingTransientUnits takes integer playerNumber returns nothing
+    local group ownedUnits=CreateGroup()
+    local unit ownedUnit=null
+    local integer unitType=0
+    call GroupEnumUnitsOfPlayer(ownedUnits, ConvertedPlayer(playerNumber), null)
+    loop
+        set ownedUnit=FirstOfGroup(ownedUnits)
+        exitwhen ownedUnit == null
+        call GroupRemoveUnit(ownedUnits, ownedUnit)
+        set unitType=GetUnitTypeId(ownedUnit)
+        if unitType == 'h02Q' or unitType == 'n02G' then
+            call RemoveUnit(ownedUnit)
+        endif
+    endloop
+    call DestroyGroup(ownedUnits)
+    set ownedUnit=null
+    set ownedUnits=null
+endfunction
+// PASS21_HELPERS_END
+
+function PlayerLifecycle_RemoveInactiveUnits takes nothing returns nothing
+    local integer playerNumber=1
+    local group ownedUnits=CreateGroup()
+    local unit ownedUnit=null
+    loop
+        exitwhen playerNumber > 12
+        if not udg_player_active[playerNumber] then
+            call GroupEnumUnitsOfPlayer(ownedUnits, ConvertedPlayer(playerNumber), null)
+            loop
+                set ownedUnit=FirstOfGroup(ownedUnits)
+                exitwhen ownedUnit == null
+                call GroupRemoveUnit(ownedUnits, ownedUnit)
+                if PlayerLifecycle_ShouldRemoveInactiveUnit(playerNumber, ownedUnit) then
+                    call RemoveUnit(ownedUnit)
+                endif
+            endloop
+        endif
+        set playerNumber=playerNumber + 1
+    endloop
+    call DestroyGroup(ownedUnits)
+    set ownedUnit=null
+    set ownedUnits=null
+endfunction
+
+function PlayerLifecycle_DefeatTeam takes integer teamNumber returns nothing
+    local integer playerNumber=PlayerLifecycle_TeamStart(teamNumber)
+    local integer lastPlayer=playerNumber + 2
+    if teamNumber < 1 or teamNumber > 4 or udg_force_defeat[teamNumber] then
+        return
+    endif
+    set udg_force_defeat[teamNumber]=true
+    loop
+        exitwhen playerNumber > lastPlayer
+        set udg_player_active[playerNumber]=false
+        set udg_unit_production[playerNumber]=false
+        set playerNumber=playerNumber + 1
+    endloop
+    call PlayerLifecycle_RemovePubDefender(teamNumber)
+    call DisplayTextToForce(udg_all_players, PlayerLifecycle_TeamDefeatMessage(teamNumber))
+    call EnableTrigger(gg_trg_Kill_units_of_inactive_player)
+    call ConditionalTriggerExecute(gg_trg_Kill_units_of_inactive_player)
+    call PlayerLifecycle_RevealDefeatedTeam(teamNumber)
+endfunction
+
+function PlayerLifecycle_HandleDeparture takes player departingPlayer returns nothing
+    local integer playerNumber=0
+    local integer controllerNumber=1
+    local multiboard currentBoard=null
+    if departingPlayer == null then
+        return
+    endif
+    set playerNumber=GetPlayerId(departingPlayer) + 1
+    if not PlayerLifecycle_IsPlayerNumber(playerNumber) or PlayerLifecycle_DepartureHandled[playerNumber] then
+        set departingPlayer=null
+        return
+    endif
+    set PlayerLifecycle_DepartureHandled[playerNumber]=true
+    set udg_leave_or_votekick[playerNumber]=true
+    set udg_autopoolto[playerNumber]=0
+    call ForceRemovePlayerSimple(departingPlayer, udg_Active_PlayGroup)
+    call PlayerLifecycle_RemoveDepartingTransientUnits(playerNumber)
+    loop
+        exitwhen controllerNumber > 12
+        if udg_autopoolto[controllerNumber] == playerNumber then
+            set udg_autopoolto[controllerNumber]=0
+        endif
+        set controllerNumber=controllerNumber + 1
+    endloop
+    call DisplayTimedTextToForce(udg_all_players, 3.00, GetPlayerName(departingPlayer) + " has left the game..")
+    set currentBoard=GetLastCreatedMultiboard()
+    if currentBoard != null then
+        call MultiboardDisplayBJ(false, currentBoard)
+        call MultiboardDisplayBJ(true, currentBoard)
+    endif
+    if PlayerLifecycle_IsBaseAlive(playerNumber) then
+        set controllerNumber=1
+        loop
+            exitwhen controllerNumber > 12
+            if controllerNumber != playerNumber and udg_teamnumber[controllerNumber] == udg_teamnumber[playerNumber] then
+                call PlayerLifecycle_CreateBaseControl(playerNumber, controllerNumber)
+            endif
+            set controllerNumber=controllerNumber + 1
+        endloop
+    else
+        set udg_player_active[playerNumber]=false
+        set udg_unit_production[playerNumber]=false
+    endif
+    call PlayerLifecycle_EvaluateAllTeams(true)
+    set currentBoard=null
+    set departingPlayer=null
+endfunction
+
+function Trig_Kill_units_of_inactive_player_Actions takes nothing returns nothing
+    call PlayerLifecycle_RemoveInactiveUnits()
+    call DisableTrigger(GetTriggeringTrigger())
+endfunction
+
+function Trig_player_destroyed_Actions takes nothing returns nothing
+    local unit deadBase=GetTriggerUnit()
+    local unit killingUnit=GetKillingUnit()
+    local integer playerNumber=GetPlayerId(GetOwningPlayer(deadBase)) + 1
+    local integer teamNumber=udg_teamnumber[playerNumber]
+    set PlayerLifecycle_BaseDeathHandled[playerNumber]=true
+    set udg_player_active[playerNumber]=false
+    set udg_unit_production[playerNumber]=false
+    call ForceRemovePlayerSimple(ConvertedPlayer(playerNumber), udg_Active_PlayGroup)
+    call PlayerLifecycle_RemoveControlsForPlayer(playerNumber)
+    if killingUnit != null then
+        call DisplayTimedTextToForce(udg_all_players, 3.00, GetPlayerName(ConvertedPlayer(playerNumber)) + " has been destroyed by " + GetPlayerName(GetOwningPlayer(killingUnit)))
+    else
+        call DisplayTimedTextToForce(udg_all_players, 3.00, GetPlayerName(ConvertedPlayer(playerNumber)) + " has been destroyed.")
+    endif
+    call PlayerLifecycle_KillPlayerUnits(playerNumber)
+    call PlayerLifecycle_DistributeGold(playerNumber)
+    if not PlayerLifecycle_TeamHasLivingBase(teamNumber) then
+        call PlayerLifecycle_RemovePubDefender(teamNumber)
+    endif
+    call EnableTrigger(gg_trg_Kill_units_of_inactive_player)
+    call PlayerLifecycle_EvaluateAllTeams(true)
+    set deadBase=null
+    set killingUnit=null
+endfunction
+
+function InitTrig_Visibility takes nothing returns nothing
+    set gg_trg_Visibility=CreateTrigger()
+    call DisableTrigger(gg_trg_Visibility)
+endfunction
+
+function Trig_Votekick_Select_Ally_To_Kick_Actions takes nothing returns nothing
+    local integer startNumber=GetPlayerId(udg_Votekick_Start_Player) + 1
+    local integer targetNumber=0
+    local player notifyPlayer=null
+    set udg_temp_playernumber=startNumber
+    if not PlayerLifecycle_IsParticipating(startNumber) then
+        call TriggerExecute(gg_trg_Votekick_RESET)
+        return
+    endif
+    if Trig_Votekick_Select_Ally_To_Kick_Func004C() then
+        set udg_Votekick_Target_Player=udg_ally1[startNumber]
+        set notifyPlayer=udg_ally2[startNumber]
+    elseif Trig_Votekick_Select_Ally_To_Kick_Func004Func004C() then
+        set udg_Votekick_Target_Player=udg_ally2[startNumber]
+        set notifyPlayer=udg_ally1[startNumber]
+    else
+        call TriggerExecute(gg_trg_Votekick_RESET)
+        set notifyPlayer=null
+        return
+    endif
+    set targetNumber=GetPlayerId(udg_Votekick_Target_Player) + 1
+    if not PlayerLifecycle_IsParticipating(targetNumber) then
+        call DisplayTextToPlayer(udg_Votekick_Start_Player, 0.00, 0.00, "That player is no longer available for votekick.")
+        call TriggerExecute(gg_trg_Votekick_RESET)
+    else
+        call DialogSetMessageBJ(udg_Votekick_Dialog_YesNo, "Are you sure you want to votekick " + GetPlayerName(udg_Votekick_Target_Player) + "?")
+        if notifyPlayer != null and PlayerLifecycle_IsParticipating(GetPlayerId(notifyPlayer) + 1) then
+            call DisplayTimedTextToPlayer(notifyPlayer, 0.00, 0.00, 20.00, "A votekick has started against player: " + udg_playername[targetNumber] + ". Type |cffff0000-vk|r to kick them out of the game!")
+        endif
+    endif
+    set notifyPlayer=null
+endfunction
+
+function Trig_Votekick_Show_Yes_and_No_Conditions takes nothing returns boolean
+    local integer playerNumber=GetPlayerId(GetTriggerPlayer()) + 1
+    if not udg_Votekick_Is_Active then
+        return false
+    endif
+    if not PlayerLifecycle_IsParticipating(playerNumber) then
+        return false
+    endif
+    if GetTriggerPlayer() == udg_Votekick_Start_Player then
+        return false
+    endif
+    if udg_Votekick_Player_Disabled[playerNumber] then
+        return false
+    endif
+    return IsPlayerAlly(GetTriggerPlayer(), udg_Votekick_Start_Player)
+endfunction
+
+function Trig_Votekick_Vote_Yes_or_No_Conditions takes nothing returns boolean
+    return udg_Votekick_Is_Active and PlayerLifecycle_IsParticipating(GetPlayerId(GetTriggerPlayer()) + 1)
+endfunction
+
+function Trig_Votekick_Vote_Yes_or_No_Func002Func005Func003C takes nothing returns boolean
+    if udg_Votekick_Target_Player == null then
+        return false
+    endif
+    return PlayerLifecycle_IsParticipating(GetPlayerId(udg_Votekick_Target_Player) + 1)
+endfunction
+
+function Trig_Votekick_Vote_Yes_or_No_Actions takes nothing returns nothing
+    if Trig_Votekick_Vote_Yes_or_No_Func002C() then
+        set udg_Votekick_Allied_Votes=udg_Votekick_Allied_Votes + 1
+        if Trig_Votekick_Vote_Yes_or_No_Func002Func005C() then
+            if Trig_Votekick_Vote_Yes_or_No_Func002Func005Func003C() then
+                call DisplayTextToForce(udg_all_players, GetPlayerName(GetTriggerPlayer()) + "'s team have decided to kick " + GetPlayerName(udg_Votekick_Target_Player) + " - RIP.")
+                call CustomDefeatBJ(udg_Votekick_Target_Player, "TRIGSTR_7869")
+                set udg_Votekick_Defeat_Kicked_Player=true
+                call TriggerExecute(gg_trg_player_leaves)
+            else
+                call DisplayTextToPlayer(GetTriggerPlayer(), 0.00, 0.00, "That player is no longer available for votekick.")
+            endif
+            call TriggerExecute(gg_trg_Votekick_RESET)
+        endif
+    else
+        call TriggerExecute(gg_trg_Votekick_RESET)
+    endif
+endfunction
+
+function Trig_Votekick_RESET_Actions takes nothing returns nothing
+    call PauseTimerBJ(true, udg_Votekick_Timer)
+    call DialogDisplayBJ(false, udg_Votekick_Dialog_Initiate, udg_Votekick_Start_Player)
+    call ForForce(udg_all_players, function Trig_Votekick_RESET_Func003A)
+    set udg_Votekick_Is_Active=false
+endfunction
+
+function Trig_autopool_execute_Conditions takes nothing returns boolean
+    return not udg_mode_promode and PlayerLifecycle_IsParticipating(GetPlayerId(GetTriggerPlayer()) + 1)
+endfunction
+
+function Trig_autopool_th_execute_Actions takes nothing returns nothing
+    local integer playerNumber=GetPlayerId(GetTriggerPlayer()) + 1
+    set udg_temp_playernumber=playerNumber
+    if not PlayerLifecycle_IsParticipating(playerNumber) then
+        set udg_autopoolto[playerNumber]=0
+        return
+    endif
+    if Trig_autopool_th_execute_Func002C() then
+        set udg_pool_threshold[playerNumber]=0
+    endif
+    if Trig_autopool_th_execute_Func003C() then
+        set udg_pool_threshold[playerNumber]=50
+    endif
+    if Trig_autopool_th_execute_Func004C() then
+        set udg_pool_threshold[playerNumber]=150
+    endif
+    if Trig_autopool_th_execute_Func005C() then
+        set udg_pool_threshold[playerNumber]=250
+    endif
+    if Trig_autopool_th_execute_Func006C() then
+        set udg_pool_threshold[playerNumber]=500
+    endif
+    call DisplayTextToPlayer(ConvertedPlayer(playerNumber), 0.00, 0.00, I2S(udg_pool_threshold[playerNumber]) + "|cffffff00 Gold|r will be held back for your personal use.")
+endfunction

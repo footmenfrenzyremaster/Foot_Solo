@@ -1,0 +1,64 @@
+//===========================================================================
+// Hero showroom page selector.
+//===========================================================================
+function PageSystem_SelectMatchingUnit takes nothing returns boolean
+    if GetUnitTypeId(GetFilterUnit()) == udg_temp_int then
+        call SelectUnitForPlayerSingle(GetFilterUnit(), udg_temp_player)
+    endif
+    return false
+endfunction
+
+function PageSystem_GetTargetType takes integer soldType returns integer
+    if soldType == 'h02U' then
+        return 'n02U'
+    elseif soldType == 'h02V' then
+        return 'n00R'
+    elseif soldType == 'h03P' then
+        return 'n03L'
+    elseif soldType == 'h03O' then
+        return 'n02U'
+    elseif soldType == 'h02X' then
+        return 'n02V'
+    elseif soldType == 'h03S' then
+        return 'n03Z'
+    elseif soldType == 'h02Y' then
+        return 'n02N'
+    elseif soldType == 'h03T' then
+        return 'n02V'
+    elseif soldType == 'h037' then
+        return 'n02Z'
+    elseif soldType == 'h038' then
+        return 'n01Y'
+    endif
+    return 0
+endfunction
+
+function Trig_page_system_Actions takes nothing returns nothing
+    local integer soldType
+    local real pageX
+    local real pageY
+    local group nearby
+    local boolexpr matchingType
+
+    set udg_temp_unit=GetSoldUnit()
+    set udg_temp_player=GetOwningPlayer(udg_temp_unit)
+    set soldType=GetUnitTypeId(udg_temp_unit)
+    set udg_temp_int=PageSystem_GetTargetType(soldType)
+    if udg_temp_int == 0 then
+        return
+    endif
+
+    set pageX=GetUnitX(udg_temp_unit)
+    set pageY=GetUnitY(udg_temp_unit)
+    call ClearSelectionForPlayer(udg_temp_player)
+    call RemoveUnit(udg_temp_unit)
+
+    set nearby=CreateGroup()
+    set matchingType=Condition(function PageSystem_SelectMatchingUnit)
+    call GroupEnumUnitsInRange(nearby, pageX, pageY, 512.00, matchingType)
+    call DestroyBoolExpr(matchingType)
+    call DestroyGroup(nearby)
+
+    set matchingType=null
+    set nearby=null
+endfunction

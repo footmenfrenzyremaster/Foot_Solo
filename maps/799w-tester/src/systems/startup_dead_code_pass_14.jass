@@ -1,0 +1,7 @@
+//===========================================================================
+// Pass 14: remove proven no-op startup branches.
+//===========================================================================
+function Trig_Start_game_Func036A takes nothing returns nothing
+    call SetPlayerStateBJ(GetEnumPlayer(), PLAYER_STATE_RESOURCE_GOLD, udg_startgold)
+endfunction
+

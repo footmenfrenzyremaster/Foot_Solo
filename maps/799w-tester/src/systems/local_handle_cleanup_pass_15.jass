@@ -1,0 +1,296 @@
+//===========================================================================
+// Pass 15: clean temporary spell and debug handles with local ownership.
+//===========================================================================
+function Trig_Staff_of_the_River_OnHit_Actions takes nothing returns nothing
+    local location sourcePoint=null
+    set udg_MissileDestroy=true
+    set udg_Jungle_Heal[0]=udg_Jungle_Heal[udg_MissileData]
+    call SetUnitPositionLocFacingBJ(udg_MonkeyKing, udg_MissilePosition, udg_Jungle_Angle)
+    call AddSpecialEffectLocBJ(udg_MissilePosition, "war3mapImported\\Culling Slash.mdx")
+    call BlzSetSpecialEffectScale(GetLastCreatedEffectBJ(), 1.50)
+    call DestroyEffectBJ(GetLastCreatedEffectBJ())
+    set sourcePoint=GetUnitLoc(udg_MissileSource)
+    set bj_wantDestroyGroup=true
+    call ForGroupBJ(GetUnitsInRangeOfLocAll(425.00, sourcePoint), function Trig_Staff_of_the_River_OnHit_Func009A)
+    call RemoveLocation(sourcePoint)
+    set sourcePoint=null
+endfunction
+
+function Trig_HERO_Alchemist_Chemical_Rage_Bounty_Actions takes nothing returns nothing
+    set udg_temp_unit=GetTriggerUnit()
+    set udg_temp_player=GetOwningPlayer(udg_temp_unit)
+    set udg_temp_point_caster=GetUnitLoc(udg_temp_unit)
+    set udg_temp_point=GetSpellTargetLoc()
+    set udg_temp_playernumber=GetConvertedPlayerId(udg_temp_player)
+    set udg_abilitylevel=GetUnitAbilityLevelSwapped(GetSpellAbilityId(), udg_temp_unit)
+    set udg_temp_degree=AngleBetweenPoints(udg_temp_point_caster, udg_temp_point)
+    set udg_X=udg_temp_playernumber
+    set udg_temp_level=GetHeroLevel(udg_herO[udg_X])
+    set udg_hero_bounty_multiplier=1.00
+    set udg_temp_real=( I2R(udg_hero_bounty_base[udg_temp_level]) * udg_hero_bounty_multiplier )
+    call BlzSetUnitIntegerFieldBJ(udg_temp_unit, UNIT_IF_GOLD_BOUNTY_AWARDED_BASE, R2I(udg_temp_real))
+    call BlzSetUnitIntegerFieldBJ(udg_temp_unit, UNIT_IF_GOLD_BOUNTY_AWARDED_NUMBER_OF_DICE, 8)
+    call BlzSetUnitIntegerFieldBJ(udg_temp_unit, UNIT_IF_GOLD_BOUNTY_AWARDED_SIDES_PER_DIE, 3)
+    call RemoveLocation(udg_temp_point_caster)
+    call RemoveLocation(udg_temp_point)
+    set udg_temp_point_caster=null
+    set udg_temp_point=null
+endfunction
+
+function Trig_HERO_Thor_Powerhit_Actions takes nothing returns nothing
+    local location nextPoint=null
+    set udg_temp_unit=GetTriggerUnit()
+    set udg_temp_target=GetSpellTargetUnit()
+    set udg_temp_player=GetOwningPlayer(udg_temp_unit)
+    set udg_temp_playernumber=GetConvertedPlayerId(GetOwningPlayer(udg_temp_unit))
+    set udg_temp_point_caster=GetUnitLoc(udg_temp_unit)
+    set udg_temp_point=GetUnitLoc(udg_temp_target)
+    set udg_temp_degree=AngleBetweenPoints(udg_temp_point_caster, udg_temp_point)
+    set udg_abilitylevel=GetUnitAbilityLevelSwapped(GetSpellAbilityId(), udg_temp_unit)
+    set udg_X=1
+    loop
+        exitwhen udg_X > ( 30 + ( 10 * udg_abilitylevel ) )
+        set nextPoint=PolarProjectionBJ(udg_temp_point, 15.00, udg_temp_degree)
+        call RemoveLocation(udg_temp_point)
+        set udg_temp_point=nextPoint
+        set nextPoint=null
+        call SetUnitPositionLocFacingBJ(udg_temp_target, udg_temp_point, udg_temp_degree)
+        call AddSpecialEffectLocBJ(udg_temp_point, "Abilities\\Spells\\Human\\FlakCannons\\FlakTarget.mdl")
+        call DestroyEffectBJ(GetLastCreatedEffectBJ())
+        if ( Trig_HERO_Thor_Powerhit_Func009Func005C() ) then
+            set nextPoint=PolarProjectionBJ(udg_temp_point, - 16.50, udg_temp_degree)
+            call RemoveLocation(udg_temp_point)
+            set udg_temp_point=nextPoint
+            set nextPoint=null
+        else
+        endif
+        set udg_X=udg_X + 1
+    endloop
+    call RemoveLocation(udg_temp_point_caster)
+    call RemoveLocation(udg_temp_point)
+    set udg_temp_point_caster=null
+    set udg_temp_point=null
+    set nextPoint=null
+endfunction
+
+function Trig_HERO_Jaina_Ulti_Actions takes nothing returns nothing
+    local unit caster=GetTriggerUnit()
+    local player casterOwner=GetOwningPlayer(caster)
+    local integer abilityLevel=GetUnitAbilityLevelSwapped('A048', caster)
+    local location castPoint=GetSpellTargetLoc()
+    local location orbPoint=null
+    local group lightningTargets=null
+    local unit frostOrb=null
+    local unit fireOrb=null
+    local unit lightningOrb=null
+    set orbPoint=PolarProjectionBJ(castPoint, 80.00, 0)
+    call CreateNUnitsAtLoc(1, 'h01L', casterOwner, orbPoint, bj_UNIT_FACING)
+    set frostOrb=GetLastCreatedUnit()
+    call RemoveLocation(orbPoint)
+    set orbPoint=PolarProjectionBJ(castPoint, 80.00, 120.00)
+    call CreateNUnitsAtLoc(1, 'h01M', casterOwner, orbPoint, bj_UNIT_FACING)
+    set fireOrb=GetLastCreatedUnit()
+    call RemoveLocation(orbPoint)
+    set orbPoint=PolarProjectionBJ(castPoint, 80.00, 240.00)
+    call CreateNUnitsAtLoc(1, 'h01N', casterOwner, orbPoint, bj_UNIT_FACING)
+    set lightningOrb=GetLastCreatedUnit()
+    call RemoveLocation(orbPoint)
+    call UnitAddAbilityBJ('A063', frostOrb)
+    call UnitAddAbilityBJ('A064', fireOrb)
+    call UnitAddAbilityBJ('A065', lightningOrb)
+    call SetUnitAbilityLevelSwapped('A063', frostOrb, abilityLevel)
+    call SetUnitAbilityLevelSwapped('A064', fireOrb, abilityLevel)
+    call SetUnitAbilityLevelSwapped('A065', lightningOrb, abilityLevel)
+    call IssueImmediateOrderBJ(frostOrb, "stomp")
+    call TriggerSleepAction(1.00)
+    set orbPoint=GetUnitLoc(fireOrb)
+    call IssuePointOrderLocBJ(fireOrb, "rainoffire", orbPoint)
+    call RemoveLocation(orbPoint)
+    call TriggerSleepAction(1.00)
+    set udg_orb[3]=lightningOrb
+    set orbPoint=GetUnitLoc(lightningOrb)
+    set lightningTargets=GetUnitsInRangeOfLocMatching(512, orbPoint, Condition(function Trig_HERO_Jaina_Ulti_Func030003001003))
+    call IssueTargetOrderBJ(lightningOrb, "chainlightning", GroupPickRandomUnit(lightningTargets))
+    call DestroyGroup(lightningTargets)
+    call RemoveLocation(orbPoint)
+    call TriggerSleepAction(2.00)
+    call RemoveUnit(frostOrb)
+    call RemoveUnit(fireOrb)
+    call RemoveUnit(lightningOrb)
+    call RemoveLocation(castPoint)
+    set caster=null
+    set casterOwner=null
+    set castPoint=null
+    set orbPoint=null
+    set lightningTargets=null
+    set frostOrb=null
+    set fireOrb=null
+    set lightningOrb=null
+endfunction
+
+function Trig_debugmode_Actions takes nothing returns nothing
+    local location startPoint=null
+    local location spawnPoint=null
+    local location itemPoint=null
+    set udg_game_mode_display[1]=" Debugmode"
+    set udg_game_mode_display[2]=" Automatic"
+    set udg_game_mode_display[3]=" AP"
+    call EnableTrigger(gg_trg_debug_show_ability_name)
+    call EnableTrigger(gg_trg_debug_control)
+    call EnableTrigger(gg_trg_debug)
+    call EnableTrigger(gg_trg_debug_show_order_ids)
+    set udg_mode_debugmode=true
+    set udg_version=5
+    set udg_ap_number_of_heros=2
+    set udg_X=1
+    loop
+        exitwhen udg_X > 12
+        set udg_AP[udg_X]=1
+        if ( Trig_debugmode_Func011Func002C() ) then
+            set startPoint=GetPlayerStartLocationLoc(ConvertedPlayer(udg_X))
+            set spawnPoint=OffsetLocation(startPoint, 175.00, 0)
+            call CreateNUnitsAtLoc(1, 'n034', ConvertedPlayer(udg_X), spawnPoint, bj_UNIT_FACING)
+            call RemoveLocation(startPoint)
+            call RemoveLocation(spawnPoint)
+            set itemPoint=GetRectCenter(gg_rct_T1_COMPLETE)
+            call CreateItemLoc('I020', itemPoint)
+            call CreateItemLoc('I020', itemPoint)
+            call CreateItemLoc('I01P', itemPoint)
+            call CreateItemLoc('I01P', itemPoint)
+            call CreateItemLoc('gold', itemPoint)
+            call CreateItemLoc('I03X', itemPoint)
+            call RemoveLocation(itemPoint)
+        else
+        endif
+        set udg_X=udg_X + 1
+    endloop
+    call TriggerSleepAction(1.00)
+    call StartTimerBJ(udg_timer_voting, false, 0.00)
+    call TriggerSleepAction(1.00)
+    call StartTimerBJ(udg_timer_tech_delay_t1, false, 0.00)
+    call TriggerSleepAction(1.00)
+    call StartTimerBJ(udg_timer_tech_delay_t3, false, 0.00)
+    call TriggerSleepAction(1.00)
+    call StartTimerBJ(udg_timer_tech_delay_t2, false, 0.00)
+    call DisplayTextToForce(udg_all_players, "TRIGSTR_1172")
+    set startPoint=null
+    set spawnPoint=null
+    set itemPoint=null
+endfunction
+
+function Trig_debug_Actions takes nothing returns nothing
+    local location debugPoint=null
+    if ( Trig_debug_Func003C() ) then
+        call DisplayTextToForce(GetForceOfPlayer(GetTriggerPlayer()), "TRIGSTR_1171")
+    else
+        if ( Trig_debug_Func003Func001C() ) then
+            call ConditionalTriggerExecute(gg_trg_debugmode)
+        else
+            set udg_temp_playernumber=GetConvertedPlayerId(GetTriggerPlayer())
+            set udg_temp_int=R2I(S2R(SubStringBJ(GetEventPlayerChatString(), 7, 8)))
+            call DisplayTextToForce(GetForceOfPlayer(GetTriggerPlayer()), ( "debug" + I2S(udg_temp_int) ))
+            if ( Trig_debug_Func003Func001Func007C() ) then
+                set udg_temp_player=GetTriggerPlayer()
+                set udg_temp_playergroup=GetForceOfPlayer(udg_temp_player)
+                set udg_temp_unitgroup=GetUnitsSelectedAll(udg_temp_player)
+                call ForGroupBJ(udg_temp_unitgroup, function Trig_debug_Func003Func001Func007Func004A)
+                call DestroyForce(udg_temp_playergroup)
+                call DestroyGroup(udg_temp_unitgroup)
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func009C() ) then
+                set udg_temp_player=GetTriggerPlayer()
+                set udg_temp_int=S2I(SubStringBJ(GetEventPlayerChatString(), 8, 9))
+                set udg_temp_unitgroup=GetUnitsSelectedAll(udg_temp_player)
+                call ForGroupBJ(udg_temp_unitgroup, function Trig_debug_Func003Func001Func009Func003A)
+                call DestroyGroup(udg_temp_unitgroup)
+                call BlzSetUnitWeaponIntegerFieldBJ(udg_temp_unit, UNIT_WEAPON_IF_ATTACK_ATTACK_TYPE, 0, udg_temp_int)
+                call BlzSetUnitIntegerFieldBJ(udg_temp_unit, UNIT_IF_DEFENSE_TYPE, udg_temp_int)
+                call DisplayTextToForce(GetPlayersAll(), ( "temp_int = " + I2S(udg_temp_int) ))
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func011C() ) then
+                set udg_temp_int=1
+                loop
+                    exitwhen udg_temp_int > 6
+                    call DisplayTextToForce(GetPlayersAll(), ( I2S(CountUnitsInGroup(udg_hero_category_group[udg_temp_int])) + ( " Heros in Group # " + I2S(udg_temp_int) ) ))
+                    set udg_temp_int=udg_temp_int + 1
+                endloop
+                set udg_temp_playergroup=GetForceOfPlayer(GetTriggerPlayer())
+                call StartTimerBJ(udg_timer_premass, false, 0.00)
+                set udg_X=1
+                loop
+                    exitwhen udg_X > 12
+                    call DisplayTextToForce(udg_all_players, ( ( "Hero of Player #" + I2S(udg_X) ) + GetUnitName(udg_herO[udg_X]) ))
+                    call DisplayTextToForce(udg_all_players, ( ( "Ally #1 of Player #" + I2S(udg_X) ) + GetPlayerName(udg_ally1[udg_X]) ))
+                    call DisplayTextToForce(udg_all_players, ( ( "Ally #2 of Player #" + I2S(udg_X) ) + GetPlayerName(udg_ally2[udg_X]) ))
+                    set udg_X=udg_X + 1
+                endloop
+                call DestroyForce(udg_temp_playergroup)
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func013C() ) then
+                set udg_temp_real=S2R(SubStringBJ(GetEventPlayerChatString(), 9, 10))
+                set udg_temp_level=R2I(S2R(SubStringBJ(GetEventPlayerChatString(), 12, 13)))
+                call SetHeroLevelBJ(udg_herO[R2I(udg_temp_real)], udg_temp_level, false)
+                call DisplayTextToForce(udg_all_players, ( ( "Player #: " + R2S(udg_temp_real) ) + ( " - Level: " + I2S(udg_temp_level) ) ))
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func015C() ) then
+                call UnitAddItemByIdSwapped('I009', udg_herO[udg_temp_playernumber])
+                call SetItemCharges(GetItemOfTypeFromUnitBJ(udg_herO[udg_temp_playernumber], 'I009'), 6)
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func017C() ) then
+                set udg_temp_real=S2R(SubStringBJ(GetEventPlayerChatString(), 9, 11))
+                set debugPoint=GetRectCenter(gg_rct_T2_COMPLETE)
+                call CreateNUnitsAtLoc(R2I(udg_temp_real), 'hfoo', Player(3), debugPoint, bj_UNIT_FACING)
+                call RemoveLocation(debugPoint)
+                call DisplayTextToForce(udg_all_players, ( R2S(udg_temp_real) + " units" ))
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func019C() ) then
+                set debugPoint=GetPlayerStartLocationLoc(GetTriggerPlayer())
+                call CreateNUnitsAtLoc(1, 'h02F', GetTriggerPlayer(), debugPoint, bj_UNIT_FACING)
+                call RemoveLocation(debugPoint)
+                set udg_dummy_useable=GetLastCreatedUnit()
+                set udg_abilitylevel=S2I(SubStringBJ(GetEventPlayerChatString(), 9, 10))
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func021C() ) then
+                set udg_abilitylevel=S2I(SubStringBJ(GetEventPlayerChatString(), 9, 10))
+                call SetUnitAbilityLevelSwapped('AIsa', udg_dummy_useable, udg_abilitylevel)
+            else
+            endif
+            if ( Trig_debug_Func003Func001Func023C() ) then
+                set udg_temp_int=S2I(SubStringBJ(GetEventPlayerChatString(), 9, 10))
+            else
+            endif
+        endif
+    endif
+    set debugPoint=null
+endfunction
+
+function Trig_debug_control_Actions takes nothing returns nothing
+    local location debugPoint=null
+    set udg_temp_unit=GetTriggerUnit()
+    set udg_temp_player=GetOwningPlayer(udg_temp_unit)
+    set udg_temp_playernumber=GetConvertedPlayerId(udg_temp_player)
+    if ( Trig_debug_control_Func004C() ) then
+        set udg_temp_level=( GetHeroLevel(udg_herO[udg_temp_playernumber]) + 1 )
+        call SetHeroLevelBJ(udg_herO[udg_temp_playernumber], udg_temp_level, false)
+    else
+    endif
+    if ( Trig_debug_control_Func005C() ) then
+        set udg_temp_level=( GetHeroLevel(udg_herO[udg_temp_playernumber]) - 1 )
+        call SetHeroLevelBJ(udg_herO[udg_temp_playernumber], udg_temp_level, false)
+    else
+    endif
+    if ( Trig_debug_control_Func006C() ) then
+        set debugPoint=GetRectCenter(gg_rct_T2_COMPLETE)
+        call CreateNUnitsAtLoc(50, 'hfoo', Player(3), debugPoint, bj_UNIT_FACING)
+        call RemoveLocation(debugPoint)
+    else
+    endif
+    set debugPoint=null
+endfunction

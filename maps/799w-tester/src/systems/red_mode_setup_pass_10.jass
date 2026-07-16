@@ -1,0 +1,300 @@
+//===========================================================================
+// Red-only game setup. Voting is intentionally removed.
+//===========================================================================
+function ModeSetup_ShowColossalDialog takes nothing returns nothing
+    call DialogClearBJ(udg_dlg_colossal)
+    call DialogSetMessageBJ(udg_dlg_colossal, "TRIGSTR_11520")
+    call DialogAddButtonBJ(udg_dlg_colossal, "TRIGSTR_11521")
+    set udg_dlg_colossal_yes=GetLastCreatedButtonBJ()
+    call DialogAddButtonBJ(udg_dlg_colossal, "TRIGSTR_11522")
+    set udg_dlg_colossal_no=GetLastCreatedButtonBJ()
+    call DialogDisplayBJ(true, udg_dlg_colossal, Player(0))
+endfunction
+
+function ModeSetup_BeginHeroChoice takes nothing returns nothing
+    call DialogDisplayBJ(false, udg_dlg_colossal, Player(0))
+    call DialogDisplayBJ(false, udg_dlg_colossal_amount, Player(0))
+    set udg_voting=true
+    call EnableTrigger(gg_trg_Vote_SD_button)
+    call EnableTrigger(gg_trg_Vote_AP_button)
+    call EnableTrigger(gg_trg_Vote_AR_button)
+    call SetUnitOwner(udg_mode_selector[1], Player(0), true)
+    call ClearSelectionForPlayer(Player(0))
+    call SelectUnitForPlayerSingle(udg_mode_selector[1], Player(0))
+    call DisplayTextToForce(udg_all_players, "Red is choosing the hero tavern and special modes.")
+    call DisplayTextToPlayer(Player(0), 0.00, 0.00, "Choose special modes, then press SD, AP, or AR to start the game.")
+endfunction
+
+function Trig_AFK_Host_Setup_Actions takes nothing returns nothing
+    call StartTimerBJ(udg_Host_AFK_Timer, false, 10.00)
+endfunction
+
+function InitTrig_AFK_Host_Setup takes nothing returns nothing
+    set gg_trg_AFK_Host_Setup=CreateTrigger()
+    call TriggerRegisterTimerEventSingle(gg_trg_AFK_Host_Setup, 0.00)
+    call TriggerAddAction(gg_trg_AFK_Host_Setup, function Trig_AFK_Host_Setup_Actions)
+endfunction
+
+function Trig_AFK_Host_Timer_Expires_Actions takes nothing returns nothing
+    if not udg_Host_Picked_A_Game_Mode then
+        call DialogDisplayBJ(false, udg_dlg_mode[1], Player(0))
+        call DisplayTimedTextToForce(GetPlayersAll(), 4.00, "TRIGSTR_539")
+        call ConditionalTriggerExecute(gg_trg_MODE_set_pub_game_default)
+    endif
+endfunction
+
+function InitTrig_AFK_Host_Timer_Expires takes nothing returns nothing
+    set gg_trg_AFK_Host_Timer_Expires=CreateTrigger()
+    call TriggerRegisterTimerExpireEventBJ(gg_trg_AFK_Host_Timer_Expires, udg_Host_AFK_Timer)
+    call TriggerAddAction(gg_trg_AFK_Host_Timer_Expires, function Trig_AFK_Host_Timer_Expires_Actions)
+endfunction
+
+function Trig_MODE_GUI_show_Conditions takes nothing returns boolean
+    return not udg_Host_Picked_A_Game_Mode
+endfunction
+
+function Trig_MODE_GUI_show_Actions takes nothing returns nothing
+    call DisplayTextToPlayer(Player(0), 0.00, 0.00, "Red has 10 seconds to choose the game setup.")
+    call DialogClearBJ(udg_dlg_mode[1])
+    call DialogSetMessageBJ(udg_dlg_mode[1], "TRIGSTR_8503")
+    call DialogAddButtonBJ(udg_dlg_mode[1], "TRIGSTR_13339")
+    set udg_dlg_btn_mode_01[1]=GetLastCreatedButtonBJ()
+    call DialogAddButtonBJ(udg_dlg_mode[1], "TRIGSTR_13350")
+    set udg_dlg_btn_mode_02[1]=GetLastCreatedButtonBJ()
+    call DialogAddButtonBJ(udg_dlg_mode[1], "TRIGSTR_12861")
+    set udg_dlg_btn_mode_03[1]=GetLastCreatedButtonBJ()
+    call DialogAddButtonBJ(udg_dlg_mode[1], "TRIGSTR_13358")
+    set udg_dlg_btn_mode_04[1]=GetLastCreatedButtonBJ()
+    call DialogDisplayBJ(true, udg_dlg_mode[1], Player(0))
+endfunction
+
+function InitTrig_MODE_GUI_show takes nothing returns nothing
+    set gg_trg_MODE_GUI_show=CreateTrigger()
+    call TriggerRegisterTimerEventSingle(gg_trg_MODE_GUI_show, 1.00)
+    call TriggerAddCondition(gg_trg_MODE_GUI_show, Condition(function Trig_MODE_GUI_show_Conditions))
+    call TriggerAddAction(gg_trg_MODE_GUI_show, function Trig_MODE_GUI_show_Actions)
+endfunction
+
+function Trig_MODE_GUI_execute_Actions takes nothing returns nothing
+    if GetTriggerPlayer() != Player(0) then
+        return
+    endif
+    set udg_mode_set_by_host=true
+    set udg_game_mode_display[2]=" Red"
+    call PauseTimer(udg_Host_AFK_Timer)
+    call DialogDisplayBJ(false, udg_dlg_mode[1], Player(0))
+    if GetClickedButtonBJ() == udg_dlg_btn_mode_01[1] then
+        call ConditionalTriggerExecute(gg_trg_MODE_set_pub_game_default)
+    elseif GetClickedButtonBJ() == udg_dlg_btn_mode_02[1] then
+        call ConditionalTriggerExecute(gg_trg_MODE_set_inhouse)
+    elseif GetClickedButtonBJ() == udg_dlg_btn_mode_03[1] then
+        call ConditionalTriggerExecute(gg_trg_MODE_set_pro_mode)
+    elseif GetClickedButtonBJ() == udg_dlg_btn_mode_04[1] then
+        call ConditionalTriggerExecute(gg_trg_MODE_set_pub_game_custom)
+    endif
+endfunction
+
+function InitTrig_MODE_GUI_execute takes nothing returns nothing
+    set gg_trg_MODE_GUI_execute=CreateTrigger()
+    call TriggerRegisterDialogEventBJ(gg_trg_MODE_GUI_execute, udg_dlg_mode[1])
+    call TriggerAddAction(gg_trg_MODE_GUI_execute, function Trig_MODE_GUI_execute_Actions)
+endfunction
+
+function Trig_MODE_set_pub_game_default_Actions takes nothing returns nothing
+    set udg_Host_Picked_A_Game_Mode=true
+    set udg_game_mode_display[1]=" Pub Game"
+    set udg_game_mode_display[2]=" Red"
+    set udg_mode_inhouse=false
+    set udg_mode_pub=true
+    set udg_mode_koth=true
+    set udg_colossal_on=true
+    set udg_colossal_max_wave=10
+    call DisplayTextToForce(udg_all_players, "|cff32cd32" + GetPlayerName(Player(0)) + " has selected Pub Default with Single Draft.|r")
+    call EnableTrigger(gg_trg_Start_SD)
+    call ConditionalTriggerExecute(gg_trg_Start_SD)
+    call ConditionalTriggerExecute(gg_trg_Start_game)
+endfunction
+
+function Trig_MODE_set_pub_game_custom_Actions takes nothing returns nothing
+    set udg_Host_Picked_A_Game_Mode=true
+    set udg_game_mode_display[1]=" Pub Custom"
+    set udg_game_mode_display[2]=" Red"
+    set udg_mode_inhouse=false
+    set udg_mode_pub=true
+    set udg_mode_koth=true
+    set udg_colossal_on=true
+    set udg_colossal_max_wave=10
+    call DisplayTextToForce(udg_all_players, "|cff32cd32" + GetPlayerName(Player(0)) + " is configuring Pub Custom.|r")
+    call AddUnitToStockBJ('h03Z', gg_unit_h03Y_0147, 1, 1)
+    call AddUnitToStockBJ('h054', gg_unit_h03Y_0147, 1, 1)
+    call AddUnitToStockBJ('h04B', gg_unit_h03Y_0147, 1, 1)
+    call AddUnitToStockBJ('h03V', gg_unit_h03Y_0147, 1, 1)
+    call EnableTrigger(gg_trg_MODE_new)
+    call ModeSetup_ShowColossalDialog()
+endfunction
+
+function Trig_MODE_set_pro_mode_Actions takes nothing returns nothing
+    set udg_Host_Picked_A_Game_Mode=true
+    set udg_game_mode_display[1]=" Pro Mode"
+    set udg_game_mode_display[2]=" Red"
+    set udg_mode_inhouse=false
+    set udg_mode_pub=true
+    set udg_mode_koth=true
+    set udg_mode_promode=true
+    set udg_colossal_on=true
+    set udg_colossal_max_wave=8
+    call DisplayTextToForce(udg_all_players, "|cff32cd32" + GetPlayerName(Player(0)) + " has selected Pro Mode with Single Draft.|r")
+    call EnableTrigger(gg_trg_Start_SD)
+    call ConditionalTriggerExecute(gg_trg_Start_SD)
+    call ConditionalTriggerExecute(gg_trg_Start_game)
+endfunction
+
+function Trig_MODE_set_inhouse_Actions takes nothing returns nothing
+    set udg_Host_Picked_A_Game_Mode=true
+    set udg_game_mode_display[1]=" Inhouse"
+    set udg_game_mode_display[2]=" Red"
+    set udg_mode_inhouse=true
+    set udg_mode_pub=false
+    set udg_mode_koth=true
+    set udg_colossal_on=true
+    set udg_colossal_max_wave=10
+    call DisplayTextToForce(udg_all_players, "|cff32cd32" + GetPlayerName(Player(0)) + " is configuring Inhouse mode.|r")
+    call AddUnitToStockBJ('h054', gg_unit_h03Y_0147, 1, 1)
+    call AddUnitToStockBJ('h03V', gg_unit_h03Y_0147, 1, 1)
+    call EnableTrigger(gg_trg_MODE_new)
+    call ModeSetup_ShowColossalDialog()
+endfunction
+
+function Trig_MODE_colossal_GUI_execute_Actions takes nothing returns nothing
+    if GetTriggerPlayer() != Player(0) then
+        return
+    endif
+    if GetClickedButtonBJ() == udg_dlg_colossal_yes then
+        set udg_colossal_wave_steps[0]=99
+        set udg_colossal_wave_steps[1]=1
+        set udg_colossal_wave_steps[2]=2
+        set udg_colossal_wave_steps[3]=3
+        set udg_colossal_wave_steps[4]=4
+        set udg_colossal_wave_steps[5]=5
+        set udg_colossal_wave_steps[6]=10
+        set udg_colossal_on=true
+        set udg_wmd[2]="|cff00ffffColossals:|r |cff00ff00On|r"
+        call DialogClearBJ(udg_dlg_colossal_amount)
+        call DialogSetMessageBJ(udg_dlg_colossal_amount, "TRIGSTR_11624")
+        call DialogAddButtonBJ(udg_dlg_colossal_amount, "TRIGSTR_11625")
+        set udg_dlg_btn_colossal_amount[0]=GetLastCreatedButtonBJ()
+        set udg_X=1
+        loop
+            exitwhen udg_X > 6
+            call DialogAddButtonBJ(udg_dlg_colossal_amount, I2S(udg_colossal_wave_steps[udg_X]))
+            set udg_dlg_btn_colossal_amount[udg_X]=GetLastCreatedButtonBJ()
+            set udg_X=udg_X + 1
+        endloop
+        call DialogDisplayBJ(true, udg_dlg_colossal_amount, Player(0))
+    elseif GetClickedButtonBJ() == udg_dlg_colossal_no then
+        set udg_colossal_on=false
+        set udg_wmd[2]="|cff00ffffColossals:|r |cffff0000Off|r"
+        call ModeSetup_BeginHeroChoice()
+    endif
+endfunction
+
+function Trig_MODE_colossal_amount_GUI_execute_Actions takes nothing returns nothing
+    if GetTriggerPlayer() != Player(0) then
+        return
+    endif
+    if GetClickedButtonBJ() == udg_dlg_btn_colossal_amount[0] then
+        set udg_colossal_max_wave=udg_colossal_wave_steps[0]
+        call DisplayTextToForce(udg_all_players, "Red selected unlimited Colossal waves.")
+    else
+        set udg_X=1
+        loop
+            exitwhen udg_X > 6
+            if GetClickedButtonBJ() == udg_dlg_btn_colossal_amount[udg_X] then
+                set udg_colossal_max_wave=udg_colossal_wave_steps[udg_X]
+                call DisplayTextToForce(udg_all_players, "Red selected " + I2S(udg_colossal_max_wave) + " Colossal waves.")
+            endif
+            set udg_X=udg_X + 1
+        endloop
+    endif
+    call ModeSetup_BeginHeroChoice()
+endfunction
+
+function Trig_MODE_new_Conditions takes nothing returns boolean
+    return GetUnitTypeId(GetSellingUnit()) == 'h03Y' and GetTriggerPlayer() == Player(0) and udg_voting
+endfunction
+
+function ModeSetup_StartHeroMode takes integer selectedMode returns nothing
+    set udg_voting=false
+    call DisableTrigger(gg_trg_Vote_SD_button)
+    call DisableTrigger(gg_trg_Vote_AP_button)
+    call DisableTrigger(gg_trg_Vote_AR_button)
+    if selectedMode == 3 then
+        call EnableTrigger(gg_trg_Start_SD)
+        call ConditionalTriggerExecute(gg_trg_Start_SD)
+    elseif selectedMode == 2 then
+        call EnableTrigger(gg_trg_Start_AP)
+        call ConditionalTriggerExecute(gg_trg_Start_AP)
+    else
+        call EnableTrigger(gg_trg_Start_AR)
+        call ConditionalTriggerExecute(gg_trg_Start_AR)
+    endif
+    call ConditionalTriggerExecute(gg_trg_Start_game)
+endfunction
+
+function InitTrig_Start_Vote takes nothing returns nothing
+    set gg_trg_Start_Vote=CreateTrigger()
+    call DisableTrigger(gg_trg_Start_Vote)
+endfunction
+
+function Trig_Vote_SD_button_Conditions takes nothing returns boolean
+    return udg_voting and GetTriggerPlayer() == Player(0) and GetSpellAbilityId() == 'A01T'
+endfunction
+
+function Trig_Vote_SD_button_Actions takes nothing returns nothing
+    call ModeSetup_StartHeroMode(3)
+endfunction
+
+function InitTrig_Vote_SD_button takes nothing returns nothing
+    set gg_trg_Vote_SD_button=CreateTrigger()
+    call DisableTrigger(gg_trg_Vote_SD_button)
+    call TriggerRegisterAnyUnitEventBJ(gg_trg_Vote_SD_button, EVENT_PLAYER_UNIT_SPELL_CAST)
+    call TriggerAddCondition(gg_trg_Vote_SD_button, Condition(function Trig_Vote_SD_button_Conditions))
+    call TriggerAddAction(gg_trg_Vote_SD_button, function Trig_Vote_SD_button_Actions)
+endfunction
+
+function Trig_Vote_AP_button_Conditions takes nothing returns boolean
+    return udg_voting and GetTriggerPlayer() == Player(0) and GetSpellAbilityId() == 'A01F'
+endfunction
+
+function Trig_Vote_AP_button_Actions takes nothing returns nothing
+    call ModeSetup_StartHeroMode(2)
+endfunction
+
+function InitTrig_Vote_AP_button takes nothing returns nothing
+    set gg_trg_Vote_AP_button=CreateTrigger()
+    call DisableTrigger(gg_trg_Vote_AP_button)
+    call TriggerRegisterAnyUnitEventBJ(gg_trg_Vote_AP_button, EVENT_PLAYER_UNIT_SPELL_CAST)
+    call TriggerAddCondition(gg_trg_Vote_AP_button, Condition(function Trig_Vote_AP_button_Conditions))
+    call TriggerAddAction(gg_trg_Vote_AP_button, function Trig_Vote_AP_button_Actions)
+endfunction
+
+function Trig_Vote_AR_button_Conditions takes nothing returns boolean
+    return udg_voting and GetTriggerPlayer() == Player(0) and GetSpellAbilityId() == 'A01R'
+endfunction
+
+function Trig_Vote_AR_button_Actions takes nothing returns nothing
+    call ModeSetup_StartHeroMode(1)
+endfunction
+
+function InitTrig_Vote_AR_button takes nothing returns nothing
+    set gg_trg_Vote_AR_button=CreateTrigger()
+    call DisableTrigger(gg_trg_Vote_AR_button)
+    call TriggerRegisterAnyUnitEventBJ(gg_trg_Vote_AR_button, EVENT_PLAYER_UNIT_SPELL_CAST)
+    call TriggerAddCondition(gg_trg_Vote_AR_button, Condition(function Trig_Vote_AR_button_Conditions))
+    call TriggerAddAction(gg_trg_Vote_AR_button, function Trig_Vote_AR_button_Actions)
+endfunction
+
+function InitTrig_Vote_Timer_Expires takes nothing returns nothing
+    set gg_trg_Vote_Timer_Expires=CreateTrigger()
+    call DisableTrigger(gg_trg_Vote_Timer_Expires)
+endfunction

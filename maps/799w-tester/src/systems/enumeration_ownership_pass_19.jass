@@ -1,0 +1,240 @@
+//===========================================================================
+// Pass 19: transient enumeration ownership and related gameplay repairs.
+//
+// The converter also marks 18 inline ForGroupBJ(GetUnits...) enumerations
+// with bj_wantDestroyGroup so their anonymous groups are released.
+//===========================================================================
+    function InitializeUnitIndexer takes nothing returns nothing
+        local integer i=0
+        local region re=CreateRegion()
+        local rect r=GetWorldBounds()
+        local boolexpr initialFilter=Filter(function IndexUnit)
+        set udg_UnitIndexerEnabled=true
+        call RegionAddRect(re, r)
+        // The enter-region event retains this filter for the lifetime of the map.
+        call TriggerRegisterEnterRegion(CreateTrigger(), re, Filter(function IndexNewUnit))
+        call RemoveRect(r)
+        set re=null
+        set r=null
+        loop
+            call GroupEnumUnitsOfPlayer(bj_lastCreatedGroup, Player(i), initialFilter)
+            set i=i + 1
+            exitwhen i == 16
+        endloop
+        call DestroyBoolExpr(initialFilter)
+        set initialFilter=null
+        set udg_UnitIndexEvent=3.00
+        set udg_UnitIndexEvent=0.00
+endfunction
+
+function Trig_Cripple_Wave_Actions takes nothing returns nothing
+    if Trig_Cripple_Wave_Func002C() then
+        set udg_QS_Damage_Copy[1]=80.00
+        set udg_QS_Damage_Copy[2]=175.00
+        set udg_QS_Damage_Copy[3]=275.00
+        set udg_QS_Damage_Copy[4]=325.00
+        set udg_QS_Damage_Copy[5]=425.00
+        set udg_QS_Damage_Copy[6]=525.00
+    endif
+    set udg_QS_Point_Copy[0]=GetUnitLoc(GetTriggerUnit())
+    set udg_QS_Point_Copy[1]=GetSpellTargetLoc()
+    set udg_QS_Angle_Copy=AngleBetweenPoints(udg_QS_Point_Copy[0], udg_QS_Point_Copy[1])
+    set udg_MissileSource=GetTriggerUnit()
+    set udg_MissileStart=GetUnitLoc(udg_MissileSource)
+    set udg_MissileFinish=PolarProjectionBJ(udg_QS_Point_Copy[0], 1300.00, udg_QS_Angle_Copy)
+    set udg_MissileOwner=GetOwningPlayer(udg_MissileSource)
+    set udg_MissileModel="war3mapImported\\ArcaneMissileComplete.mdx"
+    set udg_MissileScale=1.00
+    set udg_MissileCollision=100.00
+    set udg_MissileStartZ=90.00
+    set udg_MissileFinishZ=90.00
+    set udg_MissileSpeed=2200.00
+    set udg_MissileVision=300.00
+    set udg_MissileData=GetUnitAbilityLevelSwapped(GetSpellAbilityId(), udg_MissileSource)
+    set udg_Missile_onHit=gg_trg_Cripple_Wave_OnHit
+    call TriggerExecute(gg_trg_MissileCreate)
+    call RemoveLocation(udg_QS_Point_Copy[0])
+    call RemoveLocation(udg_QS_Point_Copy[1])
+    set udg_QS_Point_Copy[0]=null
+    set udg_QS_Point_Copy[1]=null
+endfunction
+
+function Trig_Mirror_Image_Finish_Actions takes nothing returns nothing
+    set udg_MIC_Caster=udg_MIC_Caster_Link[GetUnitUserData(GetSummoningUnit())]
+    set udg_MIC_CV=GetUnitUserData(udg_MIC_Caster)
+    set udg_MIC_Level=GetUnitAbilityLevelSwapped('AMIR', udg_MIC_Caster)
+    call GroupAddUnitSimple(GetSummonedUnit(), udg_MIC_Illusions[udg_MIC_CV])
+    call ShowUnitHide(GetSummonedUnit())
+    set udg_MIC_Illusion_Count[udg_MIC_CV]=udg_MIC_Illusion_Count[udg_MIC_CV] + 1
+    if Trig_Mirror_Image_Finish_Func011C() then
+        call SetUnitInvulnerable(udg_MIC_Caster, false)
+        call SetUnitScalePercent(udg_MIC_Caster, 100.00, 100.00, 100.00)
+        call BlzPauseUnitEx(udg_MIC_Caster, false)
+        set udg_MIC_Point[0]=GetUnitLoc(udg_MIC_Caster)
+        set udg_MIC_Angle=GetRandomDirectionDeg()
+        set udg_MIC_Loop=1
+        loop
+            exitwhen udg_MIC_Loop > udg_MIC_Level + 1
+            set udg_MIC_Point[udg_MIC_Loop]=PolarProjectionBJ(udg_MIC_Point[0], 150.00, GetUnitFacing(udg_MIC_Caster) + udg_MIC_Angle)
+            set udg_MIC_Angle=udg_MIC_Angle + 90.00
+            set udg_MIC_Loop=udg_MIC_Loop + 1
+        endloop
+        set udg_MIC_Illusions[0]=CreateGroup()
+        call GroupAddGroup(udg_MIC_Illusions[udg_MIC_CV], udg_MIC_Illusions[0])
+        call GroupAddUnitSimple(udg_MIC_Caster, udg_MIC_Illusions[0])
+        set udg_MIC_Loop=1
+        loop
+            exitwhen udg_MIC_Loop > udg_MIC_Level + 1
+            set udg_MIC_Caster=GroupPickRandomUnit(udg_MIC_Illusions[0])
+            call GroupRemoveUnitSimple(udg_MIC_Caster, udg_MIC_Illusions[0])
+            call SetUnitPositionLoc(udg_MIC_Caster, udg_MIC_Point[udg_MIC_Loop])
+            set udg_MissileSource=udg_MIC_Caster
+            set udg_MissileStart=OffsetLocation(udg_MIC_Point[0], 0, 0)
+            set udg_MissileFinish=udg_MIC_Point[udg_MIC_Loop]
+            set udg_MissileOwner=GetOwningPlayer(udg_MissileSource)
+            set udg_MissileModel="Abilities\\Spells\\Orc\\MirrorImage\\MirrorImageMissile.mdl"
+            set udg_MissileScale=1.00
+            set udg_MissileSpeed=1200.00
+            call TriggerExecute(gg_trg_MissileCreate)
+            // MissileCreate owns and removes both submitted locations.
+            set udg_MIC_Point[udg_MIC_Loop]=null
+            set udg_MIC_Loop=udg_MIC_Loop + 1
+        endloop
+        call ForGroupBJ(udg_MIC_Illusions[udg_MIC_CV], function Trig_Mirror_Image_Finish_Func011Func015A)
+        call RemoveLocation(udg_MIC_Point[0])
+        set udg_MIC_Point[0]=null
+        call DestroyGroup(udg_MIC_Illusions[0])
+        set udg_MIC_Illusions[0]=null
+    endif
+endfunction
+
+function Trig_ITEM_Purge_the_Dead_Func002002003 takes nothing returns boolean
+    return IsUnitDeadBJ(GetFilterUnit())
+endfunction
+
+function Trig_ITEM_Purge_the_Dead_Func005A takes nothing returns nothing
+    if Trig_ITEM_Purge_the_Dead_Func005Func001C() then
+        call GroupRemoveUnitSimple(GetEnumUnit(), udg_temp_unitgroup)
+    else
+        call AddSpecialEffectTargetUnitBJ("overhead", GetEnumUnit(), "Abilities\\Spells\\Items\\AItb\\AItbTarget.mdl")
+        call DestroyEffectBJ(GetLastCreatedEffectBJ())
+        call RemoveUnit(GetEnumUnit())
+    endif
+endfunction
+
+function Trig_ITEM_Purge_the_Dead_Actions takes nothing returns nothing
+    set udg_temp_point=GetSpellTargetLoc()
+    set udg_temp_unitgroup=GetUnitsInRangeOfLocMatching(800.00, udg_temp_point, Condition(function Trig_ITEM_Purge_the_Dead_Func002002003))
+    call AddSpecialEffectLocBJ(udg_temp_point, "Abilities\\Spells\\Items\\AItb\\AItbTarget.mdl")
+    call DestroyEffectBJ(GetLastCreatedEffectBJ())
+    call ForGroupBJ(udg_temp_unitgroup, function Trig_ITEM_Purge_the_Dead_Func005A)
+    call RemoveLocation(udg_temp_point)
+    set udg_temp_point=null
+    call DestroyGroup(udg_temp_unitgroup)
+    set udg_temp_unitgroup=null
+endfunction
+
+function Trig_ITEM_Scroll_of_Invisibility_Actions takes nothing returns nothing
+    set udg_temp_unit=GetTriggerUnit()
+    set udg_temp_player=GetOwningPlayer(udg_temp_unit)
+    set udg_temp_AoE=500.00
+    set udg_temp_point=GetSpellTargetLoc()
+    set udg_temp_unitgroup=GetUnitsInRangeOfLocMatching(udg_temp_AoE, udg_temp_point, Condition(function Trig_ITEM_Scroll_of_Invisibility_Func006002003))
+    call ForGroupBJ(udg_temp_unitgroup, function Trig_ITEM_Scroll_of_Invisibility_Func007A)
+    call RemoveLocation(udg_temp_point)
+    set udg_temp_point=null
+    call DestroyGroup(udg_temp_unitgroup)
+    set udg_temp_unitgroup=null
+endfunction
+
+function Trig_ITEM_Scroll_of_Inner_Fire_Actions takes nothing returns nothing
+    set udg_temp_unit=GetTriggerUnit()
+    set udg_temp_player=GetOwningPlayer(udg_temp_unit)
+    set udg_temp_AoE=600.00
+    set udg_temp_point=GetSpellTargetLoc()
+    set udg_temp_unitgroup=GetUnitsInRangeOfLocMatching(udg_temp_AoE, udg_temp_point, Condition(function Trig_ITEM_Scroll_of_Inner_Fire_Func006002003))
+    call ForGroupBJ(udg_temp_unitgroup, function Trig_ITEM_Scroll_of_Inner_Fire_Func007A)
+    call RemoveLocation(udg_temp_point)
+    set udg_temp_point=null
+    call DestroyGroup(udg_temp_unitgroup)
+    set udg_temp_unitgroup=null
+endfunction
+
+function Trig_Upgrades_level_Func002A takes nothing returns nothing
+    local group affectedUnits=null
+    if Trig_Upgrades_level_Func002Func002C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+        set udg_temp_playernumber=GetConvertedPlayerId(GetEnumPlayer())
+        call UnitAddAbilityBJ('A082', udg_base[udg_temp_playernumber])
+    endif
+    if Trig_Upgrades_level_Func002Func004C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+        set affectedUnits=GetUnitsOfPlayerMatching(GetEnumPlayer(), Condition(function Trig_Upgrades_level_Func002Func004Func002002002))
+        set udg_temp_ability='A05L'
+        call ForGroup(affectedUnits, function Trig_Upgrades_level_Func002Func004Func005A)
+        call DestroyGroup(affectedUnits)
+        set affectedUnits=null
+    endif
+    if Trig_Upgrades_level_Func002Func005C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+        set affectedUnits=GetUnitsOfPlayerMatching(GetEnumPlayer(), Condition(function Trig_Upgrades_level_Func002Func005Func002002002))
+        set udg_temp_ability='A05P'
+        call ForGroup(affectedUnits, function Trig_Upgrades_level_Func002Func005Func005A)
+        call DestroyGroup(affectedUnits)
+        set affectedUnits=null
+    endif
+    if Trig_Upgrades_level_Func002Func006C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+        set affectedUnits=GetUnitsOfPlayerMatching(GetEnumPlayer(), Condition(function Trig_Upgrades_level_Func002Func006Func002002002))
+        call ForGroup(affectedUnits, function Trig_Upgrades_level_Func002Func006Func004A)
+        call DestroyGroup(affectedUnits)
+        set affectedUnits=null
+    endif
+    if Trig_Upgrades_level_Func002Func007C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+        set affectedUnits=GetUnitsOfPlayerMatching(GetEnumPlayer(), Condition(function Trig_Upgrades_level_Func002Func007Func002002002))
+        set udg_temp_ability='A05M'
+        call ForGroup(affectedUnits, function Trig_Upgrades_level_Func002Func007Func005A)
+        call DestroyGroup(affectedUnits)
+        set affectedUnits=null
+    endif
+    if Trig_Upgrades_level_Func002Func009C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+        set udg_frostbolt_upgrade_level[udg_teamnumber[GetConvertedPlayerId(GetTriggerPlayer())]]=udg_temp_int
+        set affectedUnits=GetUnitsOfPlayerAndTypeId(GetEnumPlayer(), 'hgtw')
+        set udg_temp_ability='Awfb'
+        call ForGroup(affectedUnits, function Trig_Upgrades_level_Func002Func009Func006A)
+        call DestroyGroup(affectedUnits)
+        set affectedUnits=null
+    endif
+    if Trig_Upgrades_level_Func002Func011C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+    endif
+    if Trig_Upgrades_level_Func002Func013C() then
+        call SetPlayerTechResearchedSwap(GetResearched(), udg_temp_int, GetEnumPlayer())
+    endif
+    set udg_temp_int=GetPlayerTechCountSimple(GetResearched(), GetTriggerPlayer())
+    set affectedUnits=null
+endfunction
+
+function Trig_Upgrades_level_Actions takes nothing returns nothing
+    local force alliedPlayers=GetPlayersAllies(GetTriggerPlayer())
+    local location researchPoint=null
+    set udg_temp_int=GetPlayerTechCountSimple(GetResearched(), GetTriggerPlayer())
+    call ForForce(alliedPlayers, function Trig_Upgrades_level_Func002A)
+    set researchPoint=GetUnitLoc(GetTriggerUnit())
+    call PingMinimapLocForForceEx(alliedPlayers, researchPoint, 1.00, bj_MINIMAPPINGSTYLE_SIMPLE, 100, 100, 100)
+    call DisplayTextToForce(alliedPlayers, "Research completed for Team " + I2S(udg_teamnumber[GetConvertedPlayerId(GetTriggerPlayer())]))
+    call RemoveLocation(researchPoint)
+    call DestroyForce(alliedPlayers)
+    set researchPoint=null
+    set alliedPlayers=null
+endfunction
+
+function Trig_player_destroyed_Func003Func001C takes nothing returns boolean
+    local group townHalls=GetUnitsOfPlayerMatching(GetEnumPlayer(), Condition(function Trig_player_destroyed_Func003Func001Func002001001002))
+    local boolean hasTownHall=FirstOfGroup(townHalls) != null
+    call DestroyGroup(townHalls)
+    set townHalls=null
+    return hasTownHall
+endfunction

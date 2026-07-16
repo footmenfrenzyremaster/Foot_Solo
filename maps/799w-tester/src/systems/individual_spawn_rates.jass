@@ -1,0 +1,319 @@
+// Individual Spawn Rates
+//
+// Replaces grouped spawn timers (`eight`, `five`, `ten`) with one scheduler
+// that gives every spawn index its own interval.
+
+library IndividualSpawnRates initializer ISR_Init
+
+globals
+    private constant real ISR_TICK = 0.25
+    private constant integer ISR_MAX_PLAYER = 12
+    private constant integer ISR_MAX_INDEX = 50
+    private timer ISR_Timer = CreateTimer()
+    private boolean ISR_Running = false
+    private real array ISR_Rate
+    private real array ISR_Remaining
+    private boolean array ISR_Unlocked
+endglobals
+
+private function ISR_Key takes integer playerNumber, integer spawnIndex returns integer
+    return playerNumber * 100 + spawnIndex
+endfunction
+
+function ISR_SetRate takes integer spawnIndex, real seconds returns nothing
+    set ISR_Rate[spawnIndex] = seconds
+endfunction
+
+function ISR_GetRate takes integer spawnIndex returns real
+    return ISR_Rate[spawnIndex]
+endfunction
+
+function ISR_SetUnlocked takes integer spawnIndex, boolean unlocked returns nothing
+    set ISR_Unlocked[spawnIndex] = unlocked
+endfunction
+
+function ISR_UnlockRange takes integer firstIndex, integer lastIndex returns nothing
+    local integer i = firstIndex
+    loop
+        exitwhen i > lastIndex
+        set ISR_Unlocked[i] = true
+        set i = i + 1
+    endloop
+endfunction
+
+function ISR_LockRange takes integer firstIndex, integer lastIndex returns nothing
+    local integer i = firstIndex
+    loop
+        exitwhen i > lastIndex
+        set ISR_Unlocked[i] = false
+        set i = i + 1
+    endloop
+endfunction
+
+function ISR_UnlockTech1SpawnGroups takes nothing returns nothing
+    call ISR_UnlockRange(14, 20)
+    call ISR_UnlockRange(21, 30)
+    call ISR_UnlockRange(44, 50)
+endfunction
+
+private function ISR_UsesRhan takes integer spawnIndex returns boolean
+    return spawnIndex == 1 or spawnIndex == 2 or spawnIndex == 14 or spawnIndex == 34 or spawnIndex == 35 or spawnIndex == 49
+endfunction
+
+private function ISR_UsesRobs takes integer spawnIndex returns boolean
+    return spawnIndex == 6 or spawnIndex == 10 or spawnIndex == 11 or spawnIndex == 12 or spawnIndex == 24 or spawnIndex == 25 or spawnIndex == 40 or spawnIndex == 41 or spawnIndex == 42 or spawnIndex == 43
+endfunction
+
+private function ISR_UsesRangeUpgrade takes integer spawnIndex returns boolean
+    return spawnIndex == 3 or spawnIndex == 4 or spawnIndex == 5 or spawnIndex == 15 or spawnIndex == 32 or spawnIndex == 33 or spawnIndex == 46
+endfunction
+
+private function ISR_ShouldSpawn takes integer playerNumber, integer spawnIndex returns boolean
+    if not ISR_Unlocked[spawnIndex] then
+        return false
+    endif
+    if ISR_Rate[spawnIndex] <= 0.00 then
+        return false
+    endif
+    if udg_balanced then
+        return false
+    endif
+    if not udg_unit_production[playerNumber] then
+        return false
+    endif
+    if not IsUnitAliveBJ(udg_base[playerNumber]) then
+        return false
+    endif
+    if GetUnitTypeId(udg_base[playerNumber]) != udg_base_type[spawnIndex] then
+        return false
+    endif
+    if CountLivingPlayerUnitsOfTypeId(udg_spawn_unit[spawnIndex], ConvertedPlayer(playerNumber)) > udg_maxunitnumber then
+        return false
+    endif
+    return true
+endfunction
+
+private function ISR_PrepareSpawnStats takes integer playerNumber, integer spawnIndex returns nothing
+    local integer techLevel = 0
+
+    set techLevel = GetPlayerTechCountSimple('Rhme', ConvertedPlayer(playerNumber))
+    set udg_unit_att_num_dice_actual[spawnIndex] = udg_unit_att_num_dice[spawnIndex] + techLevel
+
+    set techLevel = GetPlayerTechCountSimple('Rhar', ConvertedPlayer(playerNumber))
+    set udg_unit_armor_actual[spawnIndex] = udg_unit_armor[spawnIndex] + (I2R(techLevel) * 2.00)
+
+    set udg_unit_att_actual[spawnIndex] = udg_unit_att_base[spawnIndex]
+    set udg_unit_HP_actual[spawnIndex] = udg_unit_HP[spawnIndex]
+    set udg_unit_range_actual[spawnIndex] = udg_unit_range[spawnIndex]
+
+    if ISR_UsesRobs(spawnIndex) and GetPlayerTechCountSimple('Robs', ConvertedPlayer(playerNumber)) > 0 then
+        set techLevel = GetPlayerTechCountSimple('Robs', ConvertedPlayer(playerNumber))
+        set udg_unit_HP_actual[spawnIndex] = udg_unit_HP[spawnIndex] + 100 + (45 * (techLevel - 1))
+        set udg_unit_att_actual[spawnIndex] = udg_unit_att_actual[spawnIndex] + 3 + (2 * (techLevel - 1))
+    elseif ISR_UsesRhan(spawnIndex) and GetPlayerTechCountSimple('Rhan', ConvertedPlayer(playerNumber)) > 0 then
+        set techLevel = GetPlayerTechCountSimple('Rhan', ConvertedPlayer(playerNumber))
+        set udg_unit_HP_actual[spawnIndex] = udg_unit_HP[spawnIndex] + 100 + (45 * (techLevel - 1))
+    endif
+
+    if ISR_UsesRangeUpgrade(spawnIndex) and GetPlayerTechCountSimple('R004', ConvertedPlayer(playerNumber)) > 0 then
+        set techLevel = GetPlayerTechCountSimple('R004', ConvertedPlayer(playerNumber))
+        set udg_unit_range_actual[spawnIndex] = udg_unit_range[spawnIndex] + 100.00 + (55.00 * (I2R(techLevel) - 1.00))
+    endif
+endfunction
+
+private function ISR_ApplySpawnStats takes unit spawned, integer playerNumber, integer spawnIndex returns nothing
+    local location orderPoint = null
+    set udg_Is_A_Spawn[GetUnitUserData(spawned)] = true
+
+    if udg_xmas[playerNumber] then
+        call UnitAddAbilityBJ('A0DD', spawned)
+    endif
+
+    call BlzSetUnitMaxHP(spawned, R2I(I2R(udg_unit_HP_actual[spawnIndex]) * udg_hp_buff))
+    call BlzSetUnitRealFieldBJ(spawned, UNIT_RF_HP, GetUnitStateSwap(UNIT_STATE_MAX_LIFE, spawned))
+    call BlzSetUnitArmor(spawned, udg_unit_armor_actual[spawnIndex])
+    call BlzSetUnitIntegerFieldBJ(spawned, UNIT_IF_DEFENSE_TYPE, udg_unit_armor_type[spawnIndex])
+    call BlzSetUnitBaseDamage(spawned, udg_unit_att_actual[spawnIndex], 0)
+    call BlzSetUnitDiceNumber(spawned, udg_unit_att_num_dice_actual[spawnIndex], 0)
+    call BlzSetUnitDiceSides(spawned, udg_unit_att_dice_sides[spawnIndex], 0)
+    call BlzSetUnitWeaponRealFieldBJ(spawned, UNIT_WEAPON_RF_ATTACK_BASE_COOLDOWN, 0, udg_unit_att_CD[spawnIndex])
+    call BlzSetUnitWeaponRealFieldBJ(spawned, UNIT_WEAPON_RF_ATTACK_RANGE, 1, udg_unit_range_actual[spawnIndex])
+    call BlzSetUnitIntegerFieldBJ(spawned, UNIT_IF_LEVEL, udg_unit_level[spawnIndex])
+    call BlzSetUnitIntegerFieldBJ(spawned, UNIT_IF_GOLD_BOUNTY_AWARDED_BASE, udg_unit_bounty_base[spawnIndex])
+    call BlzSetUnitIntegerFieldBJ(spawned, UNIT_IF_GOLD_BOUNTY_AWARDED_NUMBER_OF_DICE, udg_unit_bounty_num_dice[spawnIndex])
+    call BlzSetUnitIntegerFieldBJ(spawned, UNIT_IF_GOLD_BOUNTY_AWARDED_SIDES_PER_DIE, udg_unit_bounty_dice_sides[spawnIndex])
+
+    if spawnIndex == 0 and udg_spawnprotection then
+        call UnitAddAbilityBJ('Avul', spawned)
+    endif
+
+    if spawnIndex == 0 and not udg_Footmen_Is_Level_2 then
+        call BlzSetUnitIntegerFieldBJ(spawned, UNIT_IF_LEVEL, 1)
+    endif
+
+    if spawnIndex == 0 and udg_mode_overdrive and not udg_Footmen_Is_Level_2 then
+        call BlzSetUnitIntegerFieldBJ(spawned, UNIT_IF_LEVEL, 1)
+    endif
+
+    if udg_mass_active and udg_autosend[playerNumber] then
+        set orderPoint = GetRectCenter(GetPlayableMapRect())
+        call IssuePointOrderLocBJ(spawned, "attack", orderPoint)
+        call RemoveLocation(orderPoint)
+    else
+        call IssueImmediateOrderBJ(spawned, "stop")
+    endif
+
+    set orderPoint = null
+endfunction
+
+private function ISR_Spawn takes integer playerNumber, integer spawnIndex returns nothing
+    local integer i = 1
+    local integer count = udg_number_of_spawned_units[playerNumber]
+    local unit spawned = null
+    local location spawnPoint = null
+
+    if count < 1 then
+        set count = 1
+    endif
+
+    set spawnPoint = GetUnitLoc(udg_base[playerNumber])
+    call ISR_PrepareSpawnStats(playerNumber, spawnIndex)
+
+    loop
+        exitwhen i > count
+        call CreateNUnitsAtLoc(1, udg_spawn_unit[spawnIndex], ConvertedPlayer(playerNumber), spawnPoint, bj_UNIT_FACING)
+        set spawned = GetLastCreatedUnit()
+        call ISR_ApplySpawnStats(spawned, playerNumber, spawnIndex)
+        set i = i + 1
+    endloop
+
+    call RemoveLocation(spawnPoint)
+    set spawnPoint = null
+    set spawned = null
+endfunction
+
+private function ISR_TickIndex takes integer playerNumber, integer spawnIndex returns nothing
+    local integer key = ISR_Key(playerNumber, spawnIndex)
+    set ISR_Remaining[key] = ISR_Remaining[key] - ISR_TICK
+    if ISR_Remaining[key] <= 0.00 then
+        if ISR_ShouldSpawn(playerNumber, spawnIndex) then
+            call ISR_Spawn(playerNumber, spawnIndex)
+        endif
+        set ISR_Remaining[key] = ISR_Rate[spawnIndex]
+    endif
+endfunction
+
+private function ISR_Tick takes nothing returns nothing
+    local integer playerNumber = 1
+    local integer spawnIndex
+
+    loop
+        exitwhen playerNumber > ISR_MAX_PLAYER
+        set spawnIndex = 0
+        loop
+            exitwhen spawnIndex > ISR_MAX_INDEX
+            if ISR_Rate[spawnIndex] > 0.00 then
+                call ISR_TickIndex(playerNumber, spawnIndex)
+            endif
+            set spawnIndex = spawnIndex + 1
+        endloop
+        set playerNumber = playerNumber + 1
+    endloop
+endfunction
+
+function ISR_SetDefaultRates takes nothing returns nothing
+    call ISR_SetRate(0, 8.00)
+    call ISR_SetRate(1, 8.00)
+    call ISR_SetRate(2, 8.00)
+    call ISR_SetRate(3, 8.00)
+    call ISR_SetRate(4, 8.00)
+    call ISR_SetRate(5, 8.00)
+    call ISR_SetRate(6, 8.00)
+    call ISR_SetRate(7, 8.00)
+    call ISR_SetRate(8, 8.00)
+    call ISR_SetRate(9, 8.00)
+    call ISR_SetRate(10, 8.00)
+    call ISR_SetRate(11, 8.00)
+    call ISR_SetRate(12, 8.00)
+    call ISR_SetRate(13, 8.00)
+    call ISR_SetRate(14, 6.25)
+    call ISR_SetRate(15, 6.25)
+    call ISR_SetRate(16, 6.25)
+    call ISR_SetRate(17, 6.25)
+    call ISR_SetRate(18, 6.25)
+    call ISR_SetRate(19, 6.25)
+    call ISR_SetRate(20, 6.25)
+    call ISR_SetRate(21, 8.75)
+    call ISR_SetRate(22, 8.75)
+    call ISR_SetRate(23, 8.75)
+    call ISR_SetRate(24, 8.75)
+    call ISR_SetRate(25, 8.75)
+    call ISR_SetRate(26, 8.75)
+    call ISR_SetRate(27, 8.75)
+    call ISR_SetRate(28, 8.75)
+    call ISR_SetRate(29, 8.75)
+    call ISR_SetRate(30, 8.75)
+    call ISR_SetRate(31, 8.00)
+    call ISR_SetRate(32, 8.00)
+    call ISR_SetRate(33, 8.00)
+    call ISR_SetRate(34, 8.00)
+    call ISR_SetRate(35, 8.00)
+    call ISR_SetRate(36, 8.00)
+    call ISR_SetRate(37, 8.00)
+    call ISR_SetRate(38, 8.00)
+    call ISR_SetRate(39, 8.00)
+    call ISR_SetRate(40, 8.00)
+    call ISR_SetRate(41, 8.00)
+    call ISR_SetRate(42, 8.00)
+    call ISR_SetRate(43, 8.00)
+    call ISR_SetRate(44, 6.25)
+    call ISR_SetRate(45, 6.25)
+    call ISR_SetRate(46, 6.25)
+    call ISR_SetRate(47, 6.25)
+    call ISR_SetRate(48, 6.25)
+    call ISR_SetRate(49, 6.25)
+    call ISR_SetRate(50, 6.25)
+endfunction
+
+function ISR_SetInitialUnlocks takes nothing returns nothing
+    call ISR_UnlockRange(0, 13)
+    call ISR_UnlockRange(31, 43)
+    call ISR_LockRange(14, 30)
+    call ISR_LockRange(44, 50)
+endfunction
+
+function ISR_ResetCountdowns takes nothing returns nothing
+    local integer playerNumber = 1
+    local integer spawnIndex
+    loop
+        exitwhen playerNumber > ISR_MAX_PLAYER
+        set spawnIndex = 0
+        loop
+            exitwhen spawnIndex > ISR_MAX_INDEX
+            set ISR_Remaining[ISR_Key(playerNumber, spawnIndex)] = ISR_Rate[spawnIndex]
+            set spawnIndex = spawnIndex + 1
+        endloop
+        set playerNumber = playerNumber + 1
+    endloop
+endfunction
+
+function ISR_Start takes nothing returns nothing
+    if ISR_Running then
+        return
+    endif
+    call ISR_SetDefaultRates()
+    call ISR_SetInitialUnlocks()
+    call ISR_ResetCountdowns()
+    set ISR_Running = true
+    call TimerStart(ISR_Timer, ISR_TICK, true, function ISR_Tick)
+endfunction
+
+function ISR_Stop takes nothing returns nothing
+    set ISR_Running = false
+    call PauseTimer(ISR_Timer)
+endfunction
+
+private function ISR_Init takes nothing returns nothing
+endfunction
+
+endlibrary

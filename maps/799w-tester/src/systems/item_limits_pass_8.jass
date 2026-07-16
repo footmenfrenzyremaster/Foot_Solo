@@ -1,0 +1,99 @@
+//===========================================================================
+// Item inventory caps and hero restrictions.
+//===========================================================================
+function ItemLimits_GetMax takes integer itemType returns integer
+    if itemType == 'rat9' or itemType == 'stwa' or itemType == 'mcou' or itemType == 'I02J' or itemType == 'rwiz' or itemType == 'ofro' or itemType == 'I042' or itemType == 'ratf' or itemType == 'ckng' or itemType == 'I03C' then
+        return 1
+    endif
+    if itemType == 'belv' or itemType == 'tmmt' or itemType == 'rde3' or itemType == 'bgst' or itemType == 'cnob' or itemType == 'ciri' or itemType == 'rlif' or itemType == 'nspi' then
+        return 1
+    endif
+    if itemType == 'I006' or itemType == 'I009' then
+        return 2
+    endif
+    return 0
+endfunction
+
+function ItemLimits_Count takes unit whichUnit, integer itemType returns integer
+    local integer slot=0
+    local integer count=0
+    loop
+        exitwhen slot >= 6
+        if GetItemTypeId(UnitItemInSlot(whichUnit, slot)) == itemType then
+            set count=count+1
+        endif
+        set slot=slot+1
+    endloop
+    return count
+endfunction
+
+function ItemLimits_IsRestricted takes integer itemType, integer heroType returns boolean
+    if itemType == 'rat9' then
+        return heroType == 'O003'
+    elseif itemType == 'stwa' then
+        return heroType == 'O003' or heroType == 'O00X'
+    elseif itemType == 'desc' or itemType == 'I01H' then
+        return heroType == 'H01I' or heroType == 'E005' or heroType == 'E007' or heroType == 'H02G' or heroType == 'E00U' or heroType == 'N01L' or heroType == 'E00Z'
+    elseif itemType == 'evtl' then
+        return heroType == 'O00X' or heroType == 'O003' or heroType == 'E00F' or heroType == 'N00C' or heroType == 'N00I'
+    elseif itemType == 'I04A' then
+        return heroType == 'O00X' or heroType == 'O003' or heroType == 'E00A' or heroType == 'E00U' or heroType == 'E00O' or heroType == 'H036'
+    elseif itemType == 'tret' then
+        return heroType == 'H02I' or heroType == 'N00Z' or heroType == 'H01H' or heroType == 'H00A'
+    elseif itemType == 'modt' then
+        return heroType == 'H02D'
+    elseif itemType == 'nspi' then
+        return heroType == 'O003'
+    endif
+    return false
+endfunction
+
+function ItemLimits_RemoveOne takes unit whichUnit, integer itemType returns nothing
+    local item limitedItem=GetItemOfTypeFromUnitBJ(whichUnit, itemType)
+    call UnitRemoveItemSwapped(limitedItem, whichUnit)
+    set limitedItem=null
+endfunction
+
+function ItemLimits_ShowRestriction takes player whichPlayer, unit whichUnit, integer itemType returns nothing
+    if itemType == 'desc' then
+        call DisplayTextToPlayer(whichPlayer, 0.00, 0.00, "TRIGSTR_1706")
+    elseif itemType == 'I01H' then
+        call DisplayTextToPlayer(whichPlayer, 0.00, 0.00, "TRIGSTR_1759")
+    elseif itemType == 'modt' then
+        call DisplayTextToPlayer(whichPlayer, 0.00, 0.00, "TRIGSTR_510")
+    else
+        call DisplayTextToPlayer(whichPlayer, 0.00, 0.00, "|cffff0000Cannot use this item with "+GetUnitName(whichUnit))
+    endif
+endfunction
+
+function Trig_ITEM_limits_Actions takes nothing returns nothing
+    local unit carryingUnit=GetTriggerUnit()
+    local item pickedItem=GetManipulatedItem()
+    local player carryingPlayer=GetTriggerPlayer()
+    local integer itemType=GetItemTypeId(pickedItem)
+    local integer heroType=GetUnitTypeId(carryingUnit)
+    local integer maximum=ItemLimits_GetMax(itemType)
+
+    set udg_temp_playernumber=GetConvertedPlayerId(carryingPlayer)
+    set udg_temp_unit=carryingUnit
+    set udg_temp_item=pickedItem
+    set udg_temp_item_type=itemType
+    set udg_temp_int=0
+
+    if maximum > 0 then
+        set udg_temp_int=ItemLimits_Count(carryingUnit, itemType)
+        if udg_temp_int > maximum then
+            call ItemLimits_RemoveOne(carryingUnit, itemType)
+            call DisplayTextToPlayer(carryingPlayer, 0.00, 0.00, "|cffff0000Only "+I2S(maximum)+"x |r"+GetItemName(pickedItem)+"|cffff0000 per hero allowed!|r")
+        endif
+    endif
+
+    if ItemLimits_IsRestricted(itemType, heroType) then
+        call ItemLimits_RemoveOne(carryingUnit, itemType)
+        call ItemLimits_ShowRestriction(carryingPlayer, carryingUnit, itemType)
+    endif
+
+    set carryingPlayer=null
+    set pickedItem=null
+    set carryingUnit=null
+endfunction

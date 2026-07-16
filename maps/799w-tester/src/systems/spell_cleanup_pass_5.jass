@@ -1,0 +1,157 @@
+//===========================================================================
+// Sinkhole and Prison runtime cleanup.
+//===========================================================================
+function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func007A takes nothing returns nothing
+    local unit pulled=GetEnumUnit()
+    local real sourceX=GetUnitX(pulled)
+    local real sourceY=GetUnitY(pulled)
+    local real angle=Atan2(GetLocationY(udg_waterfall_mid[udg_X])-sourceY, GetLocationX(udg_waterfall_mid[udg_X])-sourceX)
+    call SetUnitPosition(pulled, sourceX+Cos(angle), sourceY+Sin(angle))
+    set pulled=null
+endfunction
+
+function Sinkhole_EndForPlayer takes integer playerNumber returns nothing
+    local unit waterfallUnit
+    set udg_sinkhole_active[playerNumber]=false
+    loop
+        set waterfallUnit=FirstOfGroup(udg_waterfall[playerNumber])
+        exitwhen waterfallUnit == null
+        call GroupRemoveUnit(udg_waterfall[playerNumber], waterfallUnit)
+        call RemoveUnit(waterfallUnit)
+    endloop
+    call DestroyGroup(udg_waterfall[playerNumber])
+    set udg_waterfall[playerNumber]=CreateGroup()
+    if udg_waterfall_mid[playerNumber] != null then
+        call RemoveLocation(udg_waterfall_mid[playerNumber])
+        set udg_waterfall_mid[playerNumber]=null
+    endif
+    set waterfallUnit=null
+endfunction
+
+function Trig_HERO_Myrmidon_Sinkhole_suck_Actions takes nothing returns nothing
+    local group temporaryGroup
+    local boolexpr unitFilter
+    set udg_X=1
+    loop
+        exitwhen udg_X > 12
+        if ( Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001C() ) then
+            set temporaryGroup=CreateGroup()
+            set unitFilter=Condition(function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func001001002)
+            call GroupEnumUnitsOfPlayer(temporaryGroup, ConvertedPlayer(udg_X), unitFilter)
+            call ForGroupBJ(temporaryGroup, function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func001A)
+            call DestroyBoolExpr(unitFilter)
+            call DestroyGroup(temporaryGroup)
+
+            set udg_temp_AoE=( 300.00 + ( 100.00 * I2R(udg_temp_int) ) )
+            call GroupClear(udg_waterfall_units[udg_X])
+            set unitFilter=Condition(function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func004002003)
+            call GroupEnumUnitsInRangeOfLoc(udg_waterfall_units[udg_X], udg_waterfall_mid[udg_X], udg_temp_AoE, unitFilter)
+            call DestroyBoolExpr(unitFilter)
+
+            set temporaryGroup=CreateGroup()
+            set unitFilter=Condition(function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func005001002)
+            call GroupEnumUnitsOfPlayer(temporaryGroup, ConvertedPlayer(udg_X), unitFilter)
+            call GroupRemoveGroup(temporaryGroup, udg_waterfall_units[udg_X])
+            call DestroyBoolExpr(unitFilter)
+            call DestroyGroup(temporaryGroup)
+
+            set temporaryGroup=CreateGroup()
+            set unitFilter=Condition(function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func006001003)
+            call GroupEnumUnitsInRangeOfLoc(temporaryGroup, udg_waterfall_mid[udg_X], udg_temp_AoE, unitFilter)
+            call GroupRemoveGroup(temporaryGroup, udg_waterfall_units[udg_X])
+            call DestroyBoolExpr(unitFilter)
+            call DestroyGroup(temporaryGroup)
+
+            call ForGroupBJ(udg_waterfall_units[udg_X], function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func007A)
+            set udg_sinkhole_time[udg_X]=( udg_sinkhole_time[udg_X] + 1 )
+            if ( Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func009C() ) then
+                set temporaryGroup=CreateGroup()
+                set unitFilter=Condition(function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func009Func001001002)
+                call GroupEnumUnitsOfPlayer(temporaryGroup, ConvertedPlayer(udg_X), unitFilter)
+                call ForGroupBJ(temporaryGroup, function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func009Func001A)
+                call DestroyBoolExpr(unitFilter)
+                call DestroyGroup(temporaryGroup)
+
+                call PlaySoundAtPointBJ(gg_snd_ThunderClapCaster, 100, udg_waterfall_mid[udg_X], 0)
+                call CreateNUnitsAtLoc(1, 'h02B', ConvertedPlayer(udg_X), udg_waterfall_mid[udg_X], bj_UNIT_FACING)
+                call UnitApplyTimedLifeBJ(0.50, 'BTLF', GetLastCreatedUnit())
+
+                set temporaryGroup=CreateGroup()
+                set unitFilter=Condition(function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func009Func005001002)
+                call GroupEnumUnitsOfPlayer(temporaryGroup, ConvertedPlayer(udg_X), unitFilter)
+                call ForGroupBJ(temporaryGroup, function Trig_HERO_Myrmidon_Sinkhole_suck_Func001Func001Func009Func005A)
+                call DestroyBoolExpr(unitFilter)
+                call DestroyGroup(temporaryGroup)
+
+                set udg_sinkhole_time[udg_X]=0
+                call Sinkhole_EndForPlayer(udg_X)
+            endif
+        endif
+        set udg_X=udg_X + 1
+    endloop
+    set unitFilter=null
+    set temporaryGroup=null
+endfunction
+
+function Trig_HERO_Myrmidon_Sinkhole_end_Actions takes nothing returns nothing
+    call Sinkhole_EndForPlayer(GetConvertedPlayerId(GetTriggerPlayer()))
+endfunction
+
+function Trig_HERO_Prison_Func029A takes nothing returns nothing
+    if ( Trig_HERO_Prison_Func029Func001C() ) then
+        call GroupRemoveUnitSimple(GetEnumUnit(), udg_temp_unitgroup)
+    else
+        call SetUnitPosition(GetEnumUnit(), GetRectCenterX(gg_rct_EXILE), GetRectCenterY(gg_rct_EXILE))
+    endif
+endfunction
+
+function Trig_HERO_Prison_Wall_countdown_Actions takes nothing returns nothing
+    set udg_temp_playernumber=1
+    loop
+        exitwhen udg_temp_playernumber > 12
+        if udg_prison_wall_point_1[udg_temp_playernumber] != null then
+            if TimerGetRemaining(udg_prison_timer[udg_temp_playernumber]) < 1.00 then
+                call DestroyTextTagBJ(udg_prison_wall_text_1[udg_temp_playernumber])
+                call DestroyTextTagBJ(udg_prison_wall_text_2[udg_temp_playernumber])
+                call DestroyTextTagBJ(udg_prison_wall_text_3[udg_temp_playernumber])
+                call DestroyTextTagBJ(udg_prison_wall_text_4[udg_temp_playernumber])
+                set udg_prison_wall_text_1[udg_temp_playernumber]=null
+                set udg_prison_wall_text_2[udg_temp_playernumber]=null
+                set udg_prison_wall_text_3[udg_temp_playernumber]=null
+                set udg_prison_wall_text_4[udg_temp_playernumber]=null
+
+                call RemoveLocation(udg_prison_wall_point_1[udg_temp_playernumber])
+                call RemoveLocation(udg_prison_wall_point_2[udg_temp_playernumber])
+                call RemoveLocation(udg_prison_wall_point_3[udg_temp_playernumber])
+                call RemoveLocation(udg_prison_wall_point_4[udg_temp_playernumber])
+                call RemoveLocation(udg_prison_block_point_1[udg_temp_playernumber])
+                call RemoveLocation(udg_prison_block_point_2[udg_temp_playernumber])
+                call RemoveLocation(udg_prison_block_point_3[udg_temp_playernumber])
+                call RemoveLocation(udg_prison_block_point_4[udg_temp_playernumber])
+                set udg_prison_wall_point_1[udg_temp_playernumber]=null
+                set udg_prison_wall_point_2[udg_temp_playernumber]=null
+                set udg_prison_wall_point_3[udg_temp_playernumber]=null
+                set udg_prison_wall_point_4[udg_temp_playernumber]=null
+                set udg_prison_block_point_1[udg_temp_playernumber]=null
+                set udg_prison_block_point_2[udg_temp_playernumber]=null
+                set udg_prison_block_point_3[udg_temp_playernumber]=null
+                set udg_prison_block_point_4[udg_temp_playernumber]=null
+
+                call RemoveDestructable(udg_prison_block_1[udg_temp_playernumber])
+                call RemoveDestructable(udg_prison_block_2[udg_temp_playernumber])
+                call RemoveDestructable(udg_prison_block_3[udg_temp_playernumber])
+                call RemoveDestructable(udg_prison_block_4[udg_temp_playernumber])
+                set udg_prison_block_1[udg_temp_playernumber]=null
+                set udg_prison_block_2[udg_temp_playernumber]=null
+                set udg_prison_block_3[udg_temp_playernumber]=null
+                set udg_prison_block_4[udg_temp_playernumber]=null
+            else
+                call SetTextTagTextBJ(udg_prison_wall_text_1[udg_temp_playernumber], R2SW(TimerGetRemaining(udg_prison_timer[udg_temp_playernumber]), 2, 0), 9.00)
+                call SetTextTagTextBJ(udg_prison_wall_text_2[udg_temp_playernumber], R2SW(TimerGetRemaining(udg_prison_timer[udg_temp_playernumber]), 2, 0), 9.00)
+                call SetTextTagTextBJ(udg_prison_wall_text_3[udg_temp_playernumber], R2SW(TimerGetRemaining(udg_prison_timer[udg_temp_playernumber]), 2, 0), 9.00)
+                call SetTextTagTextBJ(udg_prison_wall_text_4[udg_temp_playernumber], R2SW(TimerGetRemaining(udg_prison_timer[udg_temp_playernumber]), 2, 0), 9.00)
+            endif
+        endif
+        set udg_temp_playernumber=udg_temp_playernumber + 1
+    endloop
+endfunction

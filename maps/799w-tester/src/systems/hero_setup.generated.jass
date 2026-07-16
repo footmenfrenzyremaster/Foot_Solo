@@ -1,0 +1,207 @@
+//===========================================================================
+// Generated hero setup helpers. Values are emitted from the original trigger data.
+//===========================================================================
+function HeroSetup_SetType takes integer index, integer unitType returns nothing
+    set udg_hero_type[index]=unitType
+endfunction
+
+function HeroSetup_SetStats takes integer index, integer category, integer strengthBase, real strengthGain, integer agilityBase, real agilityGain, integer intelligenceBase, real intelligenceGain, integer moveSpeed, real turnRate returns nothing
+    set udg_hero_category[index]=category
+    set udg_hero_STR_base[index]=strengthBase
+    set udg_hero_STR_inc[index]=strengthGain
+    set udg_hero_AGI_base[index]=agilityBase
+    set udg_hero_AGI_inc[index]=agilityGain
+    set udg_hero_INT_base[index]=intelligenceBase
+    set udg_hero_INT_inc[index]=intelligenceGain
+    set udg_hero_move_base[index]=moveSpeed
+    set udg_hero_turnrate[index]=turnRate
+endfunction
+// Type rows run during normal initialization.
+function HeroSetup_LoadTypes takes nothing returns nothing
+    call HeroSetup_SetType(1, 'H005') // Paladin
+    call HeroSetup_SetType(2, 'H008') // Archmage
+    call HeroSetup_SetType(3, 'H00A') // Mountain King
+    call HeroSetup_SetType(4, 'H009') // Blood Mage
+    call HeroSetup_SetType(5, 'O003') // Blademaster
+    call HeroSetup_SetType(6, 'O004') // Far Seer
+    call HeroSetup_SetType(7, 'O005') // Tauren Chieftain
+    call HeroSetup_SetType(8, 'O006') // Shadow Hunter
+    call HeroSetup_SetType(9, 'U002') // Death Knight
+    call HeroSetup_SetType(10, 'U003') // Lich King
+    call HeroSetup_SetType(11, 'U004') // Dread Lord
+    call HeroSetup_SetType(12, 'U005') // Crypt Lord
+    call HeroSetup_SetType(13, 'E002') // Keeper of the Groove
+    call HeroSetup_SetType(14, 'E003') // Priestess of the Moon
+    call HeroSetup_SetType(15, 'E00F') // Demon Hunter
+    call HeroSetup_SetType(16, 'E005') // Warden
+    call HeroSetup_SetType(17, 'N00I') // Brewmaster
+    call HeroSetup_SetType(18, 'E00E') // Falcon
+    call HeroSetup_SetType(19, 'O00D') // Dino Din
+    call HeroSetup_SetType(20, 'E00T') // Heavenly Death Healer
+    call HeroSetup_SetType(21, 'N01C') // Alchemist
+    call HeroSetup_SetType(22, 'N00P') // Pit Lord
+    call HeroSetup_SetType(23, 'E00U') // The Craziest Cat
+    call HeroSetup_SetType(24, 'E007') // Edge
+    call HeroSetup_SetType(25, 'O01B') // Monkey King
+    call HeroSetup_SetType(26, 'N00O') // Avalanche
+    call HeroSetup_SetType(27, 'E00A') // Jaood
+    call HeroSetup_SetType(28, 'O008') // Fox
+    call HeroSetup_SetType(29, 'N015') // HatoUP
+    call HeroSetup_SetType(30, 'E00O') // Shadow
+    call HeroSetup_SetType(31, 'O000') // Ravage
+    call HeroSetup_SetType(32, 'N00Z') // Tinker
+    call HeroSetup_SetType(33, 'N01L') // Shadow Shifter
+    call HeroSetup_SetType(34, 'N01D') // Firelord
+    call HeroSetup_SetType(35, 'H00K') // Halpmeh
+    call HeroSetup_SetType(36, 'E00V') // Angel of Doom
+    call HeroSetup_SetType(37, 'H00T') // Strongest Man Ever
+    call HeroSetup_SetType(38, 'N00C') // Sea Witch
+    call HeroSetup_SetType(39, 'O00I') // Elemental Spirit
+    call HeroSetup_SetType(40, 'N05H') // Dark Ranger
+    call HeroSetup_SetType(41, 'N00D') // Beastmaster
+    call HeroSetup_SetType(42, 'N00N') // Cattle Bruiser
+    call HeroSetup_SetType(43, 'H02E') // The Summoner
+    call HeroSetup_SetType(44, 'H02D') // Ranger
+    call HeroSetup_SetType(45, 'H01B') // Warrior Mage
+    call HeroSetup_SetType(46, 'H01I') // Jaina
+    call HeroSetup_SetType(47, 'H01H') // Hydralisk
+    call HeroSetup_SetType(48, 'N027') // Mad Wizard
+    call HeroSetup_SetType(49, 'N02O') // Myrmidon Warrior
+    call HeroSetup_SetType(50, 'H02C') // Thrall
+    call HeroSetup_SetType(51, 'O00G') // Blooddancer
+    call HeroSetup_SetType(52, 'H02J') // Pander Prospero
+    call HeroSetup_SetType(53, 'H01U') // Expohate
+    call HeroSetup_SetType(54, 'H02R') // W-a-r-l-o-c-k
+    call HeroSetup_SetType(55, 'H02G') // Pirate
+    call HeroSetup_SetType(56, 'H02Z') // Tactician
+    call HeroSetup_SetType(57, 'H02I') // YETI
+    call HeroSetup_SetType(58, 'H036') // Soviet Sniper
+    call HeroSetup_SetType(59, 'O00O') // Lawyer
+    call HeroSetup_SetType(60, 'O00T') // Reptile
+    call HeroSetup_SetType(61, 'H01F') // Footgirl
+    call HeroSetup_SetType(62, 'E00P') // Ship's Doctor
+    call HeroSetup_SetType(63, 'N035') // Architect
+    call HeroSetup_SetType(64, 'N03B') // Wheelchair Warlock
+    call HeroSetup_SetType(65, 'H03I') // Dragon Tamer
+    call HeroSetup_SetType(66, 'N03J') // The Nook
+    call HeroSetup_SetType(67, 'H03N') // Wooj
+    call HeroSetup_SetType(68, 'H01R') // Dark Necromancer
+    call HeroSetup_SetType(69, 'H03Q') // Man's Best Friend
+    call HeroSetup_SetType(70, 'U00F') // Santa
+    call HeroSetup_SetType(71, 'O00X') // Shere-Khan
+    call HeroSetup_SetType(72, 'H043') // Guardian
+    call HeroSetup_SetType(73, 'H03U') // Archangel
+    call HeroSetup_SetType(74, 'H048') // Thor
+    call HeroSetup_SetType(75, 'O010') // Dark Sorceress
+    call HeroSetup_SetType(76, 'E00Y') // Drunken Templar
+    call HeroSetup_SetType(77, 'E00Z') // Akama
+    call HeroSetup_SetType(78, 'H015') // Corruptor
+    call HeroSetup_SetType(79, 'E010') // The Guard
+    call HeroSetup_SetType(80, 'H04T') // Zeus
+    call HeroSetup_SetType(81, 'U00R') // Reaper
+    call HeroSetup_SetType(82, 'O016') // Troll
+    call HeroSetup_SetType(83, 'E011') // Ratling Gunner
+    call HeroSetup_SetType(84, 'E018') // Shredder
+    call HeroSetup_SetType(85, 'H04U') // Medivh
+    call HeroSetup_SetType(86, 'H04W') // Deadeye
+    call HeroSetup_SetType(87, 'H04X') // Queen
+    call HeroSetup_SetType(88, 'H04Y') // Witch Doctor
+    call HeroSetup_SetType(89, 'H04F') // Chieftan's Companion
+    call HeroSetup_SetType(90, 'O01L') // Sea Giant
+    call HeroSetup_SetType(91, 'N00H') // Sylvanus
+endfunction
+
+// Stat rows run from the original one-second timer trigger.
+function HeroSetup_LoadStats takes nothing returns nothing
+    call HeroSetup_SetStats(1, 1, 18, 2.5, 13, 1.5, 15, 1.8, 310, 0.6) // Paladin
+    call HeroSetup_SetStats(2, 11, 17, 1.7, 17, 1.7, 19, 2.5, 320, 0.6) // Archmage
+    call HeroSetup_SetStats(3, 10, 22, 2.7, 18, 2.0, 17, 1.6, 320, 0.6) // Mountain King
+    call HeroSetup_SetStats(4, 11, 18, 2.1, 18, 2.1, 18, 2.1, 320, 0.6) // Blood Mage
+    call HeroSetup_SetStats(5, 5, 18, 2.0, 22, 2.5, 17, 1.6, 320, 0.7) // Blademaster
+    call HeroSetup_SetStats(6, 10, 18, 1.8, 18, 1.7, 20, 2.4, 320, 0.6) // Far Seer
+    call HeroSetup_SetStats(7, 9, 22, 2.6, 18, 1.7, 17, 1.8, 310, 0.6) // Tauren Chieftain
+    call HeroSetup_SetStats(8, 4, 17, 1.9, 20, 2.1, 20, 2.0, 320, 0.6) // Shadow Hunter
+    call HeroSetup_SetStats(9, 1, 20, 2.7, 16, 1.5, 17, 1.8, 320, 0.6) // Death Knight
+    call HeroSetup_SetStats(10, 9, 17, 1.7, 17, 1.6, 22, 2.5, 310, 0.6) // Lich King
+    call HeroSetup_SetStats(11, 9, 19, 2.4, 17, 1.8, 17, 1.8, 320, 0.6) // Dread Lord
+    call HeroSetup_SetStats(12, 9, 21, 2.5, 16, 1.6, 17, 1.7, 320, 0.6) // Crypt Lord
+    call HeroSetup_SetStats(13, 3, 17, 1.8, 18, 1.8, 21, 2.3, 320, 0.7) // Keeper of the Groove
+    call HeroSetup_SetStats(14, 2, 17, 1.8, 20, 2.4, 17, 1.8, 320, 0.6) // Priestess of the Moon
+    call HeroSetup_SetStats(15, 6, 19, 1.9, 21, 2.5, 18, 1.7, 320, 0.7) // Demon Hunter
+    call HeroSetup_SetStats(16, 9, 18, 1.8, 18, 2.2, 17, 2.0, 320, 0.6) // Warden
+    call HeroSetup_SetStats(17, 10, 22, 2.5, 18, 1.7, 18, 1.8, 320, 0.6) // Brewmaster
+    call HeroSetup_SetStats(18, 8, 18, 2.2, 18, 1.9, 17, 1.8, 320, 0.6) // Falcon
+    call HeroSetup_SetStats(19, 1, 18, 2.0, 20, 2.0, 18, 2.0, 320, 0.6) // Dino Din
+    call HeroSetup_SetStats(20, 4, 17, 1.8, 16, 1.8, 18, 2.2, 320, 0.6) // Heavenly Death Healer
+    call HeroSetup_SetStats(21, 8, 18, 2.2, 17, 1.8, 17, 2.0, 310, 0.6) // Alchemist
+    call HeroSetup_SetStats(22, 11, 22, 2.6, 20, 1.8, 18, 1.8, 320, 0.6) // Pit Lord
+    call HeroSetup_SetStats(23, 11, 17, 1.8, 17, 1.8, 16, 2.0, 310, 0.6) // The Craziest Cat
+    call HeroSetup_SetStats(24, 9, 17, 1.6, 16, 2.0, 18, 2.0, 320, 0.6) // Edge
+    call HeroSetup_SetStats(25, 6, 19, 2.0, 17, 2.1, 16, 2.0, 310, 0.6) // Monkey King
+    call HeroSetup_SetStats(26, 11, 21, 2.6, 18, 1.8, 18, 1.8, 320, 0.6) // Avalanche
+    call HeroSetup_SetStats(27, 5, 20, 1.8, 21, 2.4, 17, 1.7, 320, 0.6) // Jaood
+    call HeroSetup_SetStats(28, 11, 21, 2.5, 18, 1.9, 17, 1.7, 320, 0.6) // Fox
+    call HeroSetup_SetStats(29, 1, 18, 1.9, 20, 2.2, 17, 1.8, 310, 0.6) // HatoUP
+    call HeroSetup_SetStats(30, 5, 17, 1.8, 19, 2.5, 17, 1.7, 310, 0.6) // Shadow
+    call HeroSetup_SetStats(31, 2, 16, 1.8, 16, 2.0, 20, 2.0, 310, 0.6) // Ravage
+    call HeroSetup_SetStats(32, 10, 21, 2.0, 17, 1.8, 19, 2.2, 320, 0.6) // Tinker
+    call HeroSetup_SetStats(33, 11, 21, 2.1, 22, 2.1, 17, 1.9, 320, 0.6) // Shadow Shifter
+    call HeroSetup_SetStats(34, 7, 19, 1.9, 21, 2.4, 19, 1.7, 320, 0.7) // Firelord
+    call HeroSetup_SetStats(35, 0, 17, 1.8, 17, 1.7, 19, 2.4, 320, 0.6) // Halpmeh
+    call HeroSetup_SetStats(36, 2, 20, 2.5, 20, 2.5, 1, 1.0, 360, 0.6) // Angel of Doom
+    call HeroSetup_SetStats(37, 1, 20, 2.5, 20, 2.5, 1, 0.0, 320, 0.6) // Strongest Man Ever
+    call HeroSetup_SetStats(38, 10, 17, 1.7, 20, 2.0, 21, 2.4, 320, 0.6) // Sea Witch
+    call HeroSetup_SetStats(39, 11, 21, 2.0, 20, 2.0, 19, 2.0, 320, 0.6) // Elemental Spirit
+    call HeroSetup_SetStats(40, 2, 18, 1.8, 22, 2.4, 19, 1.9, 330, 0.6) // Dark Ranger
+    call HeroSetup_SetStats(41, 7, 20, 2.4, 15, 1.6, 17, 1.8, 320, 0.6) // Beastmaster
+    call HeroSetup_SetStats(42, 5, 18, 2.3, 16, 2.0, 17, 1.5, 320, 0.6) // Cattle Bruiser
+    call HeroSetup_SetStats(43, 1, 18, 2.3, 16, 1.8, 16, 1.7, 310, 0.6) // The Summoner
+    call HeroSetup_SetStats(44, 2, 17, 1.9, 21, 2.3, 16, 1.6, 320, 0.6) // Ranger
+    call HeroSetup_SetStats(45, 10, 18, 2.2, 17, 1.6, 18, 2.0, 320, 0.6) // Warrior Mage
+    call HeroSetup_SetStats(46, 10, 17, 1.7, 17, 1.7, 19, 2.3, 320, 0.6) // Jaina
+    call HeroSetup_SetStats(47, 9, 17, 1.9, 18, 2.4, 17, 1.7, 320, 0.6) // Hydralisk
+    call HeroSetup_SetStats(48, 4, 18, 1.8, 15, 1.5, 22, 2.5, 320, 0.6) // Mad Wizard
+    call HeroSetup_SetStats(49, 9, 19, 2.5, 16, 1.7, 17, 1.8, 320, 0.6) // Myrmidon Warrior
+    call HeroSetup_SetStats(50, 3, 18, 2.5, 17, 1.5, 19, 1.8, 320, 0.6) // Thrall
+    call HeroSetup_SetStats(51, 0, 21, 2.2, 19, 2.0, 17, 1.9, 320, 0.6) // Blooddancer
+    call HeroSetup_SetStats(52, 8, 17, 1.7, 17, 2.1, 17, 1.9, 310, 0.6) // Pander Prospero
+    call HeroSetup_SetStats(53, 7, 20, 2.3, 16, 1.7, 18, 2.0, 330, 0.6) // Expohate
+    call HeroSetup_SetStats(54, 10, 18, 1.9, 17, 1.9, 20, 2.2, 320, 0.6) // W-a-r-l-o-c-k
+    call HeroSetup_SetStats(55, 8, 17, 1.7, 17, 2.0, 17, 1.8, 310, 0.6) // Pirate
+    call HeroSetup_SetStats(56, 4, 17, 1.8, 16, 1.7, 20, 2.2, 320, 0.6) // Tactician
+    call HeroSetup_SetStats(57, 11, 22, 2.3, 19, 2.2, 17, 1.6, 320, 0.6) // YETI
+    call HeroSetup_SetStats(58, 6, 16, 1.7, 19, 2.5, 16, 1.8, 320, 0.6) // Soviet Sniper
+    call HeroSetup_SetStats(59, 7, 18, 2.0, 18, 1.5, 21, 2.5, 320, 0.6) // Lawyer
+    call HeroSetup_SetStats(60, 11, 18, 1.9, 20, 2.5, 18, 1.8, 330, 0.6) // Reptile
+    call HeroSetup_SetStats(61, 9, 19, 2.1, 18, 1.8, 19, 1.9, 320, 0.6) // Footgirl
+    call HeroSetup_SetStats(62, 2, 19, 2.1, 15, 1.5, 19, 2.0, 320, 0.6) // Ship's Doctor
+    call HeroSetup_SetStats(63, 7, 19, 2.0, 18, 1.6, 20, 2.4, 320, 0.6) // Architect
+    call HeroSetup_SetStats(64, 5, 17, 2.0, 17, 1.9, 18, 2.2, 320, 0.6) // Wheelchair Warlock
+    call HeroSetup_SetStats(65, 11, 18, 2.0, 18, 2.0, 18, 2.0, 320, 0.6) // Dragon Tamer
+    call HeroSetup_SetStats(66, 0, 20, 2.4, 17, 1.6, 17, 1.7, 320, 0.6) // The Nook
+    call HeroSetup_SetStats(67, 5, 19, 1.8, 17, 1.7, 18, 2.3, 310, 0.6) // Wooj
+    call HeroSetup_SetStats(68, 7, 18, 2.1, 17, 1.7, 19, 2.1, 320, 0.6) // Dark Necromancer
+    call HeroSetup_SetStats(69, 2, 14, 2.0, 13, 2.0, 1, 1.0, 320, 0.6) // Man's Best Friend
+    call HeroSetup_SetStats(70, 0, 18, 2.0, 17, 1.5, 19, 2.4, 320, 0.6) // Santa
+    call HeroSetup_SetStats(71, 11, 19, 1.8, 20, 2.4, 17, 1.7, 320, 0.6) // Shere-Khan
+    call HeroSetup_SetStats(72, 0, 18, 2.0, 18, 1.5, 21, 2.5, 320, 0.6) // Guardian
+    call HeroSetup_SetStats(73, 10, 19, 2.2, 17, 2.0, 17, 1.8, 320, 0.6) // Archangel
+    call HeroSetup_SetStats(74, 5, 21, 2.5, 17, 1.6, 18, 1.6, 320, 0.6) // Thor
+    call HeroSetup_SetStats(75, 4, 17, 1.8, 16, 1.7, 19, 2.2, 320, 0.6) // Dark Sorceress
+    call HeroSetup_SetStats(76, 4, 19, 1.9, 17, 1.6, 21, 2.3, 320, 0.6) // Drunken Templar
+    call HeroSetup_SetStats(77, 5, 20, 2.2, 20, 2.0, 18, 1.8, 320, 0.6) // Akama
+    call HeroSetup_SetStats(78, 8, 18, 2.0, 18, 2.0, 18, 2.0, 310, 0.6) // Corruptor
+    call HeroSetup_SetStats(79, 3, 20, 2.4, 17, 1.6, 19, 1.8, 320, 0.6) // The Guard
+    call HeroSetup_SetStats(80, 9, 17, 1.8, 16, 1.6, 19, 2.4, 320, 0.6) // Zeus
+    call HeroSetup_SetStats(81, 10, 17, 2.0, 17, 1.8, 19, 2.2, 320, 0.6) // Reaper
+    call HeroSetup_SetStats(82, 3, 17, 2.0, 19, 2.4, 17, 1.6, 320, 0.6) // Troll
+    call HeroSetup_SetStats(83, 6, 17, 1.8, 21, 2.4, 18, 1.8, 320, 0.6) // Ratling Gunner
+    call HeroSetup_SetStats(84, 7, 18, 2.2, 18, 2.0, 18, 2.0, 320, 0.6) // Shredder
+    call HeroSetup_SetStats(85, 4, 16, 1.9, 17, 1.5, 22, 2.4, 320, 0.6) // Medivh
+    call HeroSetup_SetStats(86, 6, 17, 1.9, 21, 2.5, 17, 1.5, 320, 0.6) // Deadeye
+    call HeroSetup_SetStats(87, 2, 18, 1.8, 20, 2.0, 18, 2.0, 310, 0.6) // Queen
+    call HeroSetup_SetStats(88, 8, 18, 2.0, 16, 1.4, 20, 2.2, 310, 0.6) // Witch Doctor
+    call HeroSetup_SetStats(89, 3, 17, 2.0, 20, 2.2, 16, 1.6, 310, 0.6) // Chieftan's Companion
+    call HeroSetup_SetStats(90, 6, 18, 2.5, 17, 1.8, 15, 1.7, 310, 0.6) // Sea Giant
+    call HeroSetup_SetStats(91, 2, 17, 1.8, 20, 2.2, 17, 1.9, 320, 0.6) // Sylvanus
+endfunction

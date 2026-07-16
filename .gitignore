@@ -1,0 +1,21 @@
+# Generated Warcraft III builds and temporary work
+**/build/
+**/builds/
+**/releases/
+**/temp/
+**/tmp/
+**/bin/
+**/obj/
+**/*.bak
+**/*.log
+
+# Editor and operating-system clutter
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+
+# Keep intentional base maps and map sources tracked.
+!**/basemap/*.w3x
+!**/map/*.w3x

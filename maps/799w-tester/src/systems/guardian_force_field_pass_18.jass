@@ -1,0 +1,233 @@
+//===========================================================================
+// Pass 18: six-level, instance-safe Guardian Force Field lifecycle.
+//===========================================================================
+function GuardianFF_GetWallCount takes integer level returns integer
+    if level >= 5 then
+        return 5
+    elseif level >= 3 then
+        return 3
+    endif
+    return 1
+endfunction
+
+function GuardianFF_CreateSidePoint takes location center, real angle, integer sideSlot returns location
+    local real distance=128.00
+    local real angleOffset=90.00
+    if sideSlot > 2 then
+        set distance=256.00
+    endif
+    if ModuloInteger(sideSlot, 2) == 0 then
+        set angleOffset=-90.00
+    endif
+    return PolarProjectionBJ(center, distance, angle + angleOffset)
+endfunction
+
+function GuardianFF_AddWall takes location wallPoint, integer instance, integer effectSlot returns nothing
+    local effect wallEffect=null
+    call CPP_Add_Pathing(wallPoint, 64, PATHING_TYPE_ANY)
+    call AddSpecialEffectLocBJ(wallPoint, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl")
+    call DestroyEffectBJ(GetLastCreatedEffectBJ())
+    call AddSpecialEffectLocBJ(wallPoint, "SC2ForceField_ByEpsilon.mdx")
+    set wallEffect=GetLastCreatedEffectBJ()
+    call SaveEffectHandleBJ(wallEffect, effectSlot, instance, udg_Guardian_FF_Hash)
+    if effectSlot == 0 then
+        call BlzSetSpecialEffectScale(wallEffect, 0.60)
+    else
+        call BlzSetSpecialEffectScale(wallEffect, 0.80)
+    endif
+    call BlzSetSpecialEffectTimeScale(wallEffect, 3.00)
+    set wallEffect=null
+endfunction
+
+function GuardianFF_RemoveWallPathing takes location wallPoint, boolean sideWall returns nothing
+    call CPP_Remove_Pathing(wallPoint, 64, PATHING_TYPE_ANY)
+    call AddSpecialEffectLocBJ(wallPoint, "Abilities\\Spells\\NightElf\\Blink\\BlinkCaster.mdl")
+    if sideWall then
+        call BlzSetSpecialEffectScale(GetLastCreatedEffectBJ(), 1.75)
+    endif
+    call DestroyEffectBJ(GetLastCreatedEffectBJ())
+endfunction
+
+function GuardianFF_DestroyInstanceEffects takes integer instance returns nothing
+    local integer effectSlot=0
+    local effect wallEffect=null
+    loop
+        exitwhen effectSlot > 4
+        set wallEffect=LoadEffectHandleBJ(effectSlot, instance, udg_Guardian_FF_Hash)
+        if wallEffect != null then
+            set udg_DDE_Effect=wallEffect
+            set udg_DDE_Duration=0.00
+            set udg_DDE_Hide_Death_Animation=true
+            call TriggerExecute(gg_trg_DDE_Destroy_Effect)
+        endif
+        set effectSlot=effectSlot + 1
+    endloop
+    call FlushChildHashtable(udg_Guardian_FF_Hash, instance)
+    set udg_DDE_Effect=null
+    set wallEffect=null
+endfunction
+
+function GuardianFF_MoveInstanceEffects takes integer sourceInstance, integer targetInstance returns nothing
+    local integer effectSlot=0
+    local effect wallEffect=null
+    loop
+        exitwhen effectSlot > 4
+        set wallEffect=LoadEffectHandleBJ(effectSlot, sourceInstance, udg_Guardian_FF_Hash)
+        if wallEffect != null then
+            call SaveEffectHandleBJ(wallEffect, effectSlot, targetInstance, udg_Guardian_FF_Hash)
+        endif
+        set effectSlot=effectSlot + 1
+    endloop
+    call FlushChildHashtable(udg_Guardian_FF_Hash, sourceInstance)
+    set wallEffect=null
+endfunction
+
+function Trig_Guardian_Force_Field_Cast_Actions takes nothing returns nothing
+    local integer level=0
+    local integer wallCount=0
+    local integer sideSlot=1
+    local location casterPoint=null
+    local location wallPoint=null
+    set udg_Guardian=GetTriggerUnit()
+    set level=GetUnitAbilityLevelSwapped(GetSpellAbilityId(), udg_Guardian)
+    if udg_Guardian_FF_Hash == null then
+        set udg_Guardian_FF_Hash=InitHashtable()
+    endif
+    if udg_Guardian_FF_Duration_Per_Lvl[1] <= 0.00 then
+        set udg_Guardian_FF_Duration_Per_Lvl[1]=3.00
+        set udg_Guardian_FF_Duration_Per_Lvl[2]=3.00
+        set udg_Guardian_FF_Duration_Per_Lvl[3]=3.50
+        set udg_Guardian_FF_Duration_Per_Lvl[4]=4.00
+        set udg_Guardian_FF_Duration_Per_Lvl[5]=5.00
+        set udg_Guardian_FF_Duration_Per_Lvl[6]=5.00
+    endif
+    set udg_Guardian_FF_Index=udg_Guardian_FF_Index + 1
+    set casterPoint=GetUnitLoc(udg_Guardian)
+    set udg_Guardian_FF_Point[udg_Guardian_FF_Index]=GetSpellTargetLoc()
+    set udg_Guardian_FF_Angle[udg_Guardian_FF_Index]=AngleBetweenPoints(casterPoint, udg_Guardian_FF_Point[udg_Guardian_FF_Index])
+    set udg_Guardian_FF_Duration[udg_Guardian_FF_Index]=udg_Guardian_FF_Duration_Per_Lvl[level]
+    set udg_Guardian_FF_Level[udg_Guardian_FF_Index]=level
+    set udg_Guardian_FF_Caster[udg_Guardian_FF_Index]=udg_Guardian
+    call GuardianFF_AddWall(udg_Guardian_FF_Point[udg_Guardian_FF_Index], udg_Guardian_FF_Index, 0)
+    set wallCount=GuardianFF_GetWallCount(level)
+    loop
+        exitwhen sideSlot >= wallCount
+        set wallPoint=GuardianFF_CreateSidePoint(udg_Guardian_FF_Point[udg_Guardian_FF_Index], udg_Guardian_FF_Angle[udg_Guardian_FF_Index], sideSlot)
+        call GuardianFF_AddWall(wallPoint, udg_Guardian_FF_Index, sideSlot)
+        call RemoveLocation(wallPoint)
+        set wallPoint=null
+        set sideSlot=sideSlot + 1
+    endloop
+    call RemoveLocation(casterPoint)
+    set udg_Guardian_FF_Count[GetUnitUserData(udg_Guardian)]=udg_Guardian_FF_Count[GetUnitUserData(udg_Guardian)] + 1
+    if udg_Guardian_FF_Count[GetUnitUserData(udg_Guardian)] == 1 then
+        call BlzUnitDisableAbility(udg_Guardian, 'AFFD', false, false)
+    endif
+    if udg_Guardian_FF_Index == 1 then
+        call EnableTrigger(gg_trg_Guardian_Force_Field_Loop)
+    endif
+    set casterPoint=null
+    set wallPoint=null
+endfunction
+
+function Trig_Guardian_Force_Field_Loop_Actions takes nothing returns nothing
+    local integer casterIndex=0
+    local integer level=0
+    local integer wallCount=0
+    local integer sideSlot=1
+    local integer lastIndex=0
+    local location wallPoint=null
+    set udg_Guardian_FF_Loop=1
+    loop
+        exitwhen udg_Guardian_FF_Loop > udg_Guardian_FF_Index
+        set udg_Guardian_FF_Duration[udg_Guardian_FF_Loop]=udg_Guardian_FF_Duration[udg_Guardian_FF_Loop] - 0.02
+        if udg_Guardian_FF_Duration[udg_Guardian_FF_Loop] <= 0.01 then
+            set casterIndex=GetUnitUserData(udg_Guardian_FF_Caster[udg_Guardian_FF_Loop])
+            set udg_Guardian_FF_Count[casterIndex]=udg_Guardian_FF_Count[casterIndex] - 1
+            if udg_Guardian_FF_Count[casterIndex] <= 0 then
+                set udg_Guardian_FF_Count[casterIndex]=0
+                call BlzUnitDisableAbility(udg_Guardian_FF_Caster[udg_Guardian_FF_Loop], 'AFFD', true, false)
+            endif
+            set level=udg_Guardian_FF_Level[udg_Guardian_FF_Loop]
+            set wallCount=GuardianFF_GetWallCount(level)
+            call GuardianFF_RemoveWallPathing(udg_Guardian_FF_Point[udg_Guardian_FF_Loop], false)
+            set sideSlot=1
+            loop
+                exitwhen sideSlot >= wallCount
+                set wallPoint=GuardianFF_CreateSidePoint(udg_Guardian_FF_Point[udg_Guardian_FF_Loop], udg_Guardian_FF_Angle[udg_Guardian_FF_Loop], sideSlot)
+                set udg_Guardian_Point[sideSlot - 1]=wallPoint
+                set wallPoint=null
+                set sideSlot=sideSlot + 1
+            endloop
+            call TriggerExecute(gg_trg_Guardian_Force_Field_Damage)
+            set sideSlot=1
+            loop
+                exitwhen sideSlot >= wallCount
+                set wallPoint=udg_Guardian_Point[sideSlot - 1]
+                call GuardianFF_RemoveWallPathing(wallPoint, true)
+                call RemoveLocation(wallPoint)
+                set udg_Guardian_Point[sideSlot - 1]=null
+                set wallPoint=null
+                set sideSlot=sideSlot + 1
+            endloop
+            call GuardianFF_DestroyInstanceEffects(udg_Guardian_FF_Loop)
+            call RemoveLocation(udg_Guardian_FF_Point[udg_Guardian_FF_Loop])
+            set udg_Guardian_FF_Point[udg_Guardian_FF_Loop]=null
+            set lastIndex=udg_Guardian_FF_Index
+            if udg_Guardian_FF_Loop != lastIndex then
+                set udg_Guardian_FF_Point[udg_Guardian_FF_Loop]=udg_Guardian_FF_Point[lastIndex]
+                set udg_Guardian_FF_Duration[udg_Guardian_FF_Loop]=udg_Guardian_FF_Duration[lastIndex]
+                set udg_Guardian_FF_Angle[udg_Guardian_FF_Loop]=udg_Guardian_FF_Angle[lastIndex]
+                set udg_Guardian_FF_Level[udg_Guardian_FF_Loop]=udg_Guardian_FF_Level[lastIndex]
+                set udg_Guardian_FF_Caster[udg_Guardian_FF_Loop]=udg_Guardian_FF_Caster[lastIndex]
+                call GuardianFF_MoveInstanceEffects(lastIndex, udg_Guardian_FF_Loop)
+            endif
+            set udg_Guardian_FF_Point[lastIndex]=null
+            set udg_Guardian_FF_Duration[lastIndex]=0.00
+            set udg_Guardian_FF_Angle[lastIndex]=0.00
+            set udg_Guardian_FF_Level[lastIndex]=0
+            set udg_Guardian_FF_Caster[lastIndex]=null
+            set udg_Guardian_FF_Index=udg_Guardian_FF_Index - 1
+            set udg_Guardian_FF_Loop=udg_Guardian_FF_Loop - 1
+            if udg_Guardian_FF_Index == 0 then
+                call DisableTrigger(GetTriggeringTrigger())
+            endif
+        endif
+        set udg_Guardian_FF_Loop=udg_Guardian_FF_Loop + 1
+    endloop
+    set wallPoint=null
+endfunction
+
+function Trig_Guardian_Force_Field_Damage_Actions takes nothing returns nothing
+    local integer level=udg_Guardian_FF_Level[udg_Guardian_FF_Loop]
+    local integer wallCount=GuardianFF_GetWallCount(level)
+    local integer sideSlot=1
+    set udg_Guardian_Real[0]=0.00 * I2R(level)
+    call CreateNUnitsAtLoc(1, 'dmmy', GetOwningPlayer(udg_Guardian_FF_Caster[udg_Guardian_FF_Loop]), udg_Guardian_FF_Point[udg_Guardian_FF_Loop], bj_UNIT_FACING)
+    set udg_Guardian_Unit[1]=GetLastCreatedUnit()
+    call UnitApplyTimedLifeBJ(0.25, 'BTLF', udg_Guardian_Unit[1])
+    call UnitAddAbilityBJ('AFFS', udg_Guardian_Unit[1])
+    call SetUnitAbilityLevelSwapped('AFFS', udg_Guardian_Unit[1], level)
+    call IssueImmediateOrderBJ(udg_Guardian_Unit[1], "stomp")
+    if wallCount == 1 then
+        set udg_Guardian_Group[0]=GetUnitsInRangeOfLocAll(175.00, udg_Guardian_FF_Point[udg_Guardian_FF_Loop])
+        call ForGroupBJ(udg_Guardian_Group[0], function Trig_Guardian_Force_Field_Damage_Func013Func018A)
+        call DestroyGroup(udg_Guardian_Group[0])
+        set udg_Guardian_Group[0]=null
+    else
+        set udg_Guardian_Group[1]=CreateGroup()
+        loop
+            exitwhen sideSlot >= wallCount
+            set udg_Guardian_Group[0]=GetUnitsInRangeOfLocAll(175.00, udg_Guardian_Point[sideSlot - 1])
+            call ForGroupBJ(udg_Guardian_Group[0], function Trig_Guardian_Force_Field_Damage_Func013Func011Func002A)
+            call DestroyGroup(udg_Guardian_Group[0])
+            set udg_Guardian_Group[0]=null
+            call SetUnitPositionLoc(udg_Guardian_Unit[1], udg_Guardian_Point[sideSlot - 1])
+            call IssueImmediateOrderBJ(udg_Guardian_Unit[1], "stomp")
+            set sideSlot=sideSlot + 1
+        endloop
+        call ForGroupBJ(udg_Guardian_Group[1], function Trig_Guardian_Force_Field_Damage_Func013Func014A)
+        call DestroyGroup(udg_Guardian_Group[1])
+        set udg_Guardian_Group[1]=null
+    endif
+endfunction

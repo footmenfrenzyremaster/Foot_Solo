@@ -1,0 +1,105 @@
+//===========================================================================
+// Pass 17: fixes confirmed by external review of pass 16.
+//===========================================================================
+function Runtime_KillBlinkShopUnit takes string warning returns nothing
+    local unit moved=GetTriggerUnit()
+    local real sourceX=GetUnitX(moved)
+    local real sourceY=GetUnitY(moved)
+    local real centerX=GetLocationX(udg_centermap)
+    local real centerY=GetLocationY(udg_centermap)
+    local real angle=Atan2(centerY - sourceY, centerX - sourceX)
+    local force ownerForce=GetForceOfPlayer(GetTriggerPlayer())
+    call SetUnitPosition(moved, sourceX + 350.00 * Cos(angle), sourceY + 350.00 * Sin(angle))
+    call UnitRemoveItemSwapped(GetItemOfTypeFromUnitBJ(moved, 'ankh'), moved)
+    call KillUnit(moved)
+    call DisplayTextToForce(ownerForce, warning)
+    call DestroyForce(ownerForce)
+    set ownerForce=null
+    set moved=null
+endfunction
+
+function Trig_Mass_START_Func002Func014Func004A takes nothing returns nothing
+    call UnitRemoveAbilityBJ('Avul', GetEnumUnit())
+    if Trig_Mass_START_Func002Func014Func004Func002C() then
+        call IssuePointOrder(GetEnumUnit(), "attack", GetLocationX(udg_centermap), GetLocationY(udg_centermap))
+    endif
+endfunction
+
+function Trig_Mass_START_Func002Func030Func003A takes nothing returns nothing
+    call UnitRemoveAbilityBJ('Avul', GetEnumUnit())
+    if Trig_Mass_START_Func002Func030Func003Func002C() then
+        call IssuePointOrder(GetEnumUnit(), "attack", GetLocationX(udg_centermap), GetLocationY(udg_centermap))
+    endif
+endfunction
+
+function Trig_ITEM_Scroll_of_Beast_start_Actions takes nothing returns nothing
+    set udg_temp_unit=GetTriggerUnit()
+    set udg_temp_player=GetOwningPlayer(udg_temp_unit)
+    set udg_temp_unitgroup=GetUnitsInRectMatching(GetPlayableMapRect(), Condition(function Trig_ITEM_Scroll_of_Beast_start_Func003002002))
+    call ForGroupBJ(udg_temp_unitgroup, function Trig_ITEM_Scroll_of_Beast_start_Func004A)
+    call DestroyGroup(udg_temp_unitgroup)
+    set udg_temp_unitgroup=null
+endfunction
+
+function Trig_Staff_of_the_River_Actions takes nothing returns nothing
+    set udg_Jungle_Heal[1]=85.00
+    set udg_Jungle_Heal[2]=125.00
+    set udg_Jungle_Heal[3]=180.00
+    set udg_Jungle_Heal[4]=225.00
+    set udg_Jungle_Heal[5]=275.00
+    set udg_Jungle_Heal[6]=375.00
+    set udg_Jungle_Point[0]=GetUnitLoc(GetTriggerUnit())
+    set udg_Jungle_Point[1]=GetSpellTargetLoc()
+    set udg_Jungle_Angle=AngleBetweenPoints(udg_Jungle_Point[0], udg_Jungle_Point[1])
+    set udg_MissileSource=GetTriggerUnit()
+    set udg_MissileStart=PolarProjectionBJ(udg_Jungle_Point[0], 150.00, udg_Jungle_Angle)
+    set udg_MissileFinish=PolarProjectionBJ(udg_Jungle_Point[0], 1000.00, udg_Jungle_Angle)
+    set udg_MissileOwner=GetOwningPlayer(udg_MissileSource)
+    set udg_MissileModel="war3mapImported\\Scepter of the Tides.mdx"
+    set udg_MissileScale=3.00
+    set udg_MissileCollision=90.00
+    set udg_MissileStartZ=90.00
+    set udg_MissileFinishZ=90.00
+    set udg_MissileSpeed=1300.00
+    set udg_MissileVision=300.00
+    set udg_MissileData=GetUnitAbilityLevelSwapped(GetSpellAbilityId(), udg_MissileSource)
+    set udg_Missile_onHit=gg_trg_Staff_of_the_River_OnHit
+    call TriggerExecute(gg_trg_MissileCreate)
+    call RemoveLocation(udg_Jungle_Point[0])
+    call RemoveLocation(udg_Jungle_Point[1])
+endfunction
+
+function Trig_Staff_of_the_River_OnHit_Actions takes nothing returns nothing
+    local location sourcePoint=null
+    local real impactAngle=AngleBetweenPoints(udg_MissileStart, udg_MissileFinish)
+    set udg_MissileDestroy=true
+    set udg_Jungle_Heal[0]=udg_Jungle_Heal[udg_MissileData]
+    call SetUnitPositionLocFacingBJ(udg_MissileSource, udg_MissilePosition, impactAngle)
+    call AddSpecialEffectLocBJ(udg_MissilePosition, "war3mapImported\\Culling Slash.mdx")
+    call BlzSetSpecialEffectScale(GetLastCreatedEffectBJ(), 1.50)
+    call DestroyEffectBJ(GetLastCreatedEffectBJ())
+    set sourcePoint=GetUnitLoc(udg_MissileSource)
+    set bj_wantDestroyGroup=true
+    call ForGroupBJ(GetUnitsInRangeOfLocAll(425.00, sourcePoint), function Trig_Staff_of_the_River_OnHit_Func009A)
+    call RemoveLocation(sourcePoint)
+    set sourcePoint=null
+endfunction
+
+function Trig_Akama_Blink_Return_Actions takes nothing returns nothing
+    set udg_Akama=GetTriggerUnit()
+    set udg_Akama_CV=GetUnitUserData(udg_Akama)
+    set udg_Akama_Blink_Point[0]=GetUnitLoc(udg_Akama)
+    call AddSpecialEffectLocBJ(udg_Akama_Blink_Point[0], "WarpStrikeUp.mdx")
+    call DestroyEffectBJ(GetLastCreatedEffectBJ())
+    call RemoveLocation(udg_Akama_Blink_Point[0])
+    set udg_Akama_Blink_Point[0]=null
+    call SetUnitPositionLoc(udg_Akama, udg_Akama_Blink_Point[udg_Akama_CV])
+    call IssueImmediateOrderBJ(udg_Akama, "stop")
+    call AddSpecialEffectLocBJ(udg_Akama_Blink_Point[udg_Akama_CV], "WarpStrike.mdx")
+    call DestroyEffectBJ(GetLastCreatedEffectBJ())
+    call RemoveLocation(udg_Akama_Blink_Point[udg_Akama_CV])
+    set udg_Akama_Blink_Point[udg_Akama_CV]=null
+    call DestroyEffectBJ(udg_Akama_Blink_Sfx[udg_Akama_CV])
+    set udg_Akama_Blink_Sfx[udg_Akama_CV]=null
+    call BlzUnitDisableAbility(udg_Akama, 'ABLI', true, false)
+endfunction

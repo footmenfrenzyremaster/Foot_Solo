@@ -1,0 +1,99 @@
+//===========================================================================
+// Pass 11 startup repairs.
+// These functions replace the generated callbacks/actions named below.
+//===========================================================================
+function Trig_Start_game_Func035Func002A takes nothing returns nothing
+    local location startLocation=GetPlayerStartLocationLoc(GetEnumPlayer())
+    call PanCameraToTimedLocForPlayer(GetEnumPlayer(), startLocation, 1.00)
+    call RemoveLocation(startLocation)
+    set startLocation=null
+endfunction
+
+function Trig_Start_AP_Func006Func002A takes nothing returns nothing
+    set udg_temp_point=GetRandomLocInRect(gg_rct_EXILE)
+    call SetUnitPositionLoc(GetEnumUnit(), udg_temp_point)
+    call RemoveLocation(udg_temp_point)
+endfunction
+
+function Trig_Start_AP_Func006Func003A takes nothing returns nothing
+    set udg_temp_point=GetRandomLocInRect(gg_rct_EXILE)
+    call SetUnitPositionLoc(GetEnumUnit(), udg_temp_point)
+    call RemoveLocation(udg_temp_point)
+endfunction
+
+function Trig_Start_AR_Func008Func002A takes nothing returns nothing
+    set udg_temp_point=GetRandomLocInRect(gg_rct_EXILE)
+    call SetUnitPositionLoc(GetEnumUnit(), udg_temp_point)
+    call RemoveLocation(udg_temp_point)
+endfunction
+
+function Trig_Start_AR_Func008Func003A takes nothing returns nothing
+    set udg_temp_point=GetRandomLocInRect(gg_rct_EXILE)
+    call SetUnitPositionLoc(GetEnumUnit(), udg_temp_point)
+    call RemoveLocation(udg_temp_point)
+endfunction
+
+function Trig_Start_AR_Actions takes nothing returns nothing
+    set udg_Host_Picked_A_Game_Mode=true
+    call EnableTrigger(gg_trg_swap_command)
+    call EnableTrigger(gg_trg_swap_execute)
+    call EnableTrigger(gg_trg_repick_command)
+
+    // Resolve the two legacy hero holding areas, then release both groups.
+    set udg_temp_unitgroup2=GetUnitsInRectOfPlayer(gg_rct_EXILE_OLD, Player(PLAYER_NEUTRAL_PASSIVE))
+    set udg_temp_unitgroup3=GetUnitsInRectOfPlayer(gg_rct_EXILE_NEW, Player(PLAYER_NEUTRAL_PASSIVE))
+    if Trig_Start_AR_Func008C() then
+        call ForGroupBJ(udg_temp_unitgroup2, function Trig_Start_AR_Func008Func003A)
+        call ForGroupBJ(udg_temp_unitgroup3, function Trig_Start_AR_Func008Func004A)
+    else
+        call ForGroupBJ(udg_temp_unitgroup2, function Trig_Start_AR_Func008Func001A)
+        call ForGroupBJ(udg_temp_unitgroup3, function Trig_Start_AR_Func008Func002A)
+    endif
+    call DestroyGroup(udg_temp_unitgroup2)
+    call DestroyGroup(udg_temp_unitgroup3)
+
+    set udg_selected_mode=1
+    set udg_game_mode_display[3]=" AR"
+    call EnableSelect(true, true)
+    call TimerDialogDisplayBJ(false, udg_timer_window_voting)
+    call StartTimerBJ(udg_timer_repick, false, 150.00)
+    call CreateTimerDialogBJ(udg_timer_repick, "TRIGSTR_11523")
+    set udg_timer_window_repick=GetLastCreatedTimerDialogBJ()
+    call TimerDialogDisplayBJ(true, udg_timer_window_repick)
+    call DisplayTextToForce(GetPlayersAll(), "TRIGSTR_11524")
+
+    // Remove the old showroom pool before creating one source unit per hero type.
+    set udg_temp_unitgroup=GetUnitsInRectOfPlayer(gg_rct_ALL_HERO, Player(PLAYER_NEUTRAL_PASSIVE))
+    call ForGroupBJ(udg_temp_unitgroup, function Trig_Start_AR_Func019A)
+    call DestroyGroup(udg_temp_unitgroup)
+    set udg_temp_point=GetRectCenter(gg_rct_EXILE)
+    set udg_X=1
+    loop
+        exitwhen udg_X > udg_total_hero_count
+        call CreateNUnitsAtLoc(1, udg_hero_type[udg_X], Player(PLAYER_NEUTRAL_PASSIVE), udg_temp_point, bj_UNIT_FACING)
+        set udg_X=udg_X + 1
+    endloop
+    call RemoveLocation(udg_temp_point)
+
+    // Draw without replacement. The stored type is exactly the hero granted.
+    set udg_temp_unitgroup=GetUnitsInRectOfPlayer(gg_rct_EXILE, Player(PLAYER_NEUTRAL_PASSIVE))
+    set udg_X=1
+    loop
+        exitwhen udg_X > 12
+        if Trig_Start_AR_Func022Func001C() then
+            set udg_temp_unit=GroupPickRandomUnit(udg_temp_unitgroup)
+            if udg_temp_unit != null then
+                set udg_random_hero[udg_X]=GetUnitTypeId(udg_temp_unit)
+                call GroupRemoveUnitSimple(udg_temp_unit, udg_temp_unitgroup)
+                call RemoveUnit(udg_temp_unit)
+                call CreateNUnitsAtLoc(1, udg_random_hero[udg_X], ConvertedPlayer(udg_X), udg_loc_tavern, bj_UNIT_FACING)
+            endif
+        endif
+        set udg_X=udg_X + 1
+    endloop
+
+    // Remove unselected source units and retire this one-shot trigger.
+    call ForGroupBJ(udg_temp_unitgroup, function Trig_Start_AR_Func024A)
+    call DestroyGroup(udg_temp_unitgroup)
+    call DestroyTrigger(GetTriggeringTrigger())
+endfunction

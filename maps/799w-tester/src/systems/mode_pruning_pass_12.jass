@@ -1,0 +1,146 @@
+//===========================================================================
+// Pass 12: Red-only setup with three supported optional modes.
+//===========================================================================
+function ModeSetup_IsTransmuteHero takes integer heroIndex returns boolean
+    return heroIndex == 18 or heroIndex == 21 or heroIndex == 52 or heroIndex == 55 or heroIndex == 78 or heroIndex == 88
+endfunction
+
+function ModeSetup_AddHeroToStock takes integer heroIndex, unit tavern returns nothing
+    if not MODE_NoTransmute or not ModeSetup_IsTransmuteHero(heroIndex) then
+        call AddUnitToStockBJ(udg_hero_type[heroIndex], tavern, 3, udg_ap_number_of_heros)
+    endif
+endfunction
+
+function ModeSetup_GetSDWildcardRounds takes nothing returns integer
+    if MODE_NoTransmute then
+        return 2
+    endif
+    return 1
+endfunction
+
+function ModeSetup_ResetUnsupportedModes takes nothing returns nothing
+    set MODE_NoTransmute=false
+    set udg_mode_777club=false
+    set udg_mode_promode=false
+    set udg_mode_koth=false
+    set udg_colossal_on=false
+    set udg_mode_inhouse=false
+    set udg_mode_pub=true
+    set udg_mode_1v1=false
+    set udg_balanced=false
+    set udg_mode_madness=false
+    set udg_mode_strong_mode=false
+    set udg_mode_overdrive=false
+    set udg_mode_debugmode=false
+    set udg_wmd[2]=""
+    set udg_wmd[3]=""
+    set udg_wmd[7]=""
+    set udg_wmd[10]=""
+    set udg_wmd[11]=""
+endfunction
+
+function ModeSetup_BeginHeroChoice takes nothing returns nothing
+    set udg_voting=true
+    call EnableTrigger(gg_trg_Vote_SD_button)
+    call EnableTrigger(gg_trg_Vote_AP_button)
+    call EnableTrigger(gg_trg_Vote_AR_button)
+    call SetUnitOwner(udg_mode_selector[1], Player(0), true)
+    call ClearSelectionForPlayer(Player(0))
+    call SelectUnitForPlayerSingle(udg_mode_selector[1], Player(0))
+    call DisplayTextToForce(udg_all_players, "Red is choosing the hero tavern and optional modes.")
+    call DisplayTextToPlayer(Player(0), 0.00, 0.00, "Choose 2K, No Transmute, and/or No Pool, then press SD, AP, or AR.")
+endfunction
+
+function Trig_MODE_GUI_show_Actions takes nothing returns nothing
+    call DisplayTextToPlayer(Player(0), 0.00, 0.00, "Red has 10 seconds to choose the game setup.")
+    call DialogClearBJ(udg_dlg_mode[1])
+    call DialogSetMessageBJ(udg_dlg_mode[1], "Choose game setup")
+    call DialogAddButtonBJ(udg_dlg_mode[1], "Pub Default (SD)")
+    set udg_dlg_btn_mode_01[1]=GetLastCreatedButtonBJ()
+    call DialogAddButtonBJ(udg_dlg_mode[1], "Pub Custom")
+    set udg_dlg_btn_mode_02[1]=GetLastCreatedButtonBJ()
+    call DialogDisplayBJ(true, udg_dlg_mode[1], Player(0))
+endfunction
+
+function Trig_MODE_GUI_execute_Actions takes nothing returns nothing
+    if GetTriggerPlayer() != Player(0) then
+        return
+    endif
+    set udg_mode_set_by_host=true
+    set udg_game_mode_display[2]=" Red"
+    call PauseTimer(udg_Host_AFK_Timer)
+    call DialogDisplayBJ(false, udg_dlg_mode[1], Player(0))
+    if GetClickedButtonBJ() == udg_dlg_btn_mode_01[1] then
+        call ConditionalTriggerExecute(gg_trg_MODE_set_pub_game_default)
+    elseif GetClickedButtonBJ() == udg_dlg_btn_mode_02[1] then
+        call ConditionalTriggerExecute(gg_trg_MODE_set_pub_game_custom)
+    endif
+endfunction
+
+function Trig_MODE_set_pub_game_default_Actions takes nothing returns nothing
+    set udg_Host_Picked_A_Game_Mode=true
+    set udg_game_mode_display[1]=" Pub Default"
+    set udg_game_mode_display[2]=" Red"
+    call ModeSetup_ResetUnsupportedModes()
+    call DisplayTextToForce(udg_all_players, "|cff32cd32" + GetPlayerName(Player(0)) + " has selected Pub Default with Single Draft.|r")
+    call EnableTrigger(gg_trg_Start_SD)
+    call ConditionalTriggerExecute(gg_trg_Start_SD)
+    call ConditionalTriggerExecute(gg_trg_Start_game)
+endfunction
+
+function Trig_MODE_set_pub_game_custom_Actions takes nothing returns nothing
+    set udg_Host_Picked_A_Game_Mode=true
+    set udg_game_mode_display[1]=" Pub Custom"
+    set udg_game_mode_display[2]=" Red"
+    call ModeSetup_ResetUnsupportedModes()
+    call DisplayTextToForce(udg_all_players, "|cff32cd32" + GetPlayerName(Player(0)) + " is configuring Pub Custom.|r")
+    call AddUnitToStockBJ('h03Z', gg_unit_h03Y_0147, 1, 1)
+    call AddUnitToStockBJ('h03V', gg_unit_h03Y_0147, 1, 1)
+    call AddUnitToStockBJ('h04B', gg_unit_h03Y_0147, 1, 1)
+    call EnableTrigger(gg_trg_MODE_new)
+    call ModeSetup_BeginHeroChoice()
+endfunction
+
+function Trig_MODE_new_Conditions takes nothing returns boolean
+    return GetUnitTypeId(GetSellingUnit()) == 'h03Y' and GetTriggerPlayer() == Player(0) and udg_voting
+endfunction
+
+function Trig_MODE_new_Actions takes nothing returns nothing
+    local integer selectedMode=GetUnitTypeId(GetSoldUnit())
+    call RemoveUnit(GetSoldUnit())
+    if selectedMode == 'h03Z' then
+        set udg_mode_777club=true
+        set udg_wmd[7]="|cff00ffff2K Mode:|r |cff00ff00On|r"
+        call DisplayTextToForce(udg_all_players, "|cff32cd32Red enabled 2K starting gold.|r")
+    elseif selectedMode == 'h03V' then
+        set MODE_NoTransmute=true
+        set udg_wmd[3]="|cff00ffffNo Transmute:|r |cff00ff00On|r"
+        call DisplayTextToForce(udg_all_players, "|cff32cd32Red disabled Transmute heroes.|r")
+    elseif selectedMode == 'h04B' then
+        set udg_mode_promode=true
+        set udg_wmd[10]="|cff00ffffNo Pool:|r |cff00ff00On|r"
+        call DisplayTextToForce(udg_all_players, "|cff32cd32Red disabled gold pooling.|r")
+    endif
+endfunction
+
+function InitTrig_MODE_new takes nothing returns nothing
+    set gg_trg_MODE_new=CreateTrigger()
+    call DisableTrigger(gg_trg_MODE_new)
+    call TriggerRegisterAnyUnitEventBJ(gg_trg_MODE_new, EVENT_PLAYER_UNIT_SELL)
+    call TriggerAddCondition(gg_trg_MODE_new, Condition(function Trig_MODE_new_Conditions))
+    call TriggerAddAction(gg_trg_MODE_new, function Trig_MODE_new_Actions)
+endfunction
+
+function Trig_Start_SD_Func025Func001A takes nothing returns nothing
+    if MODE_NoTransmute and ModeSetup_IsTransmuteHero(udg_X) then
+        return
+    endif
+    set udg_temp_int=1
+    loop
+        exitwhen udg_temp_int > udg_numberofSDcategories
+        if udg_hero_category[udg_X] == udg_temp_int then
+            call GroupAddUnitSimple(GetEnumUnit(), udg_hero_category_group[udg_temp_int])
+        endif
+        set udg_temp_int=udg_temp_int + 1
+    endloop
+endfunction

@@ -1,0 +1,91 @@
+//===========================================================================
+// Pass 13: high-confidence boundary, shop, Phoenix, and mass-start cleanup.
+//===========================================================================
+function Runtime_MoveEnteringUnit takes real offsetX, real offsetY returns nothing
+    local unit moved=GetTriggerUnit()
+    call SetUnitPosition(moved, GetUnitX(moved) + offsetX, GetUnitY(moved) + offsetY)
+    set moved=null
+endfunction
+
+function Runtime_KillBlinkShopUnit takes string warning returns nothing
+    local unit moved=GetTriggerUnit()
+    local real sourceX=GetUnitX(moved)
+    local real sourceY=GetUnitY(moved)
+    local real centerX=(GetRectMinX(gg_rct_ENTIRE_MAP) + GetRectMaxX(gg_rct_ENTIRE_MAP)) * 0.50
+    local real centerY=(GetRectMinY(gg_rct_ENTIRE_MAP) + GetRectMaxY(gg_rct_ENTIRE_MAP)) * 0.50
+    local real angle=Atan2(centerY - sourceY, centerX - sourceX)
+    local force ownerForce=GetForceOfPlayer(GetTriggerPlayer())
+    call SetUnitPosition(moved, sourceX + 350.00 * Cos(angle), sourceY + 350.00 * Sin(angle))
+    call UnitRemoveItemSwapped(GetItemOfTypeFromUnitBJ(moved, 'ankh'), moved)
+    call KillUnit(moved)
+    call DisplayTextToForce(ownerForce, warning)
+    call DestroyForce(ownerForce)
+    set ownerForce=null
+    set moved=null
+endfunction
+
+function Trig_keep_footy_in_base_Actions takes nothing returns nothing
+    local unit moved=GetTriggerUnit()
+    local real angle=Atan2(GetUnitY(moved) - GetLocationY(udg_centermap), GetUnitX(moved) - GetLocationX(udg_centermap))
+    local force ownerForce=GetForceOfPlayer(GetOwningPlayer(moved))
+    call SetUnitPosition(moved, GetUnitX(moved) + 100.00 * Cos(angle), GetUnitY(moved) + 100.00 * Sin(angle))
+    call IssueImmediateOrderBJ(moved, "stop")
+    if Trig_keep_footy_in_base_Func009C() then
+        call StartTimerBJ(udg_timer, false, 1.00)
+        call DisplayTextToForce(ownerForce, "TRIGSTR_1137")
+    endif
+    call DestroyForce(ownerForce)
+    set ownerForce=null
+    set moved=null
+endfunction
+
+function Trig_Mass_START_Func002Func014Func004A takes nothing returns nothing
+    call UnitRemoveAbilityBJ('Avul', GetEnumUnit())
+    if Trig_Mass_START_Func002Func014Func004Func002C() then
+        call IssuePointOrder(GetEnumUnit(), "attack", (GetRectMinX(GetPlayableMapRect()) + GetRectMaxX(GetPlayableMapRect())) * 0.50, (GetRectMinY(GetPlayableMapRect()) + GetRectMaxY(GetPlayableMapRect())) * 0.50)
+    endif
+endfunction
+
+function Trig_Mass_START_Func002Func030Func003A takes nothing returns nothing
+    call UnitRemoveAbilityBJ('Avul', GetEnumUnit())
+    if Trig_Mass_START_Func002Func030Func003Func002C() then
+        call IssuePointOrder(GetEnumUnit(), "attack", (GetRectMinX(GetPlayableMapRect()) + GetRectMaxX(GetPlayableMapRect())) * 0.50, (GetRectMinY(GetPlayableMapRect()) + GetRectMaxY(GetPlayableMapRect())) * 0.50)
+    endif
+endfunction
+
+function Trig_block_from_shop_t1_Actions takes nothing returns nothing
+    call Runtime_MoveEnteringUnit(50.00, -50.00)
+endfunction
+
+function Trig_block_from_shop_t2_Actions takes nothing returns nothing
+    call Runtime_MoveEnteringUnit(-50.00, -50.00)
+endfunction
+
+function Trig_block_from_shop_t3_Actions takes nothing returns nothing
+    call Runtime_MoveEnteringUnit(-50.00, 50.00)
+endfunction
+
+function Trig_block_from_shop_t4_Actions takes nothing returns nothing
+    call Runtime_MoveEnteringUnit(50.00, 50.00)
+endfunction
+
+function Trig_kill_blink_shop_t1_Actions takes nothing returns nothing
+    call Runtime_KillBlinkShopUnit("TRIGSTR_1109")
+endfunction
+
+function Trig_kill_blink_shop_t2_Actions takes nothing returns nothing
+    call Runtime_KillBlinkShopUnit("TRIGSTR_2332")
+endfunction
+
+function Trig_kill_blink_shop_t3_Actions takes nothing returns nothing
+    call Runtime_KillBlinkShopUnit("TRIGSTR_4019")
+endfunction
+
+function Trig_kill_blink_shop_t4_Actions takes nothing returns nothing
+    call Runtime_KillBlinkShopUnit("TRIGSTR_4495")
+endfunction
+
+function Trig_phoenix_block_Actions takes nothing returns nothing
+    call Runtime_MoveEnteringUnit(30.00, 0.00)
+endfunction
+

@@ -1,0 +1,96 @@
+//===========================================================================
+// Throw Glaive loop cleanup and multiplayer-safe trigger lifetime.
+//===========================================================================
+function Trig_HERO_Throw_Glaive_Loop_Func001Func001Func016Func001Func002C takes nothing returns boolean
+    local real deltaX=GetLocationX(udg_glaive_location[udg_X])-GetUnitX(udg_herO[udg_X])
+    local real deltaY=GetLocationY(udg_glaive_location[udg_X])-GetUnitY(udg_herO[udg_X])
+    if ( not ( udg_glaive_hops[udg_X] >= 57 ) ) then
+        return false
+    endif
+    if ( not ( SquareRoot(deltaX*deltaX+deltaY*deltaY) <= 100.00 ) ) then
+        return false
+    endif
+    return true
+endfunction
+
+function Trig_HERO_Throw_Glaive_Loop_Func001Func001Func016Func001C takes nothing returns boolean
+    local real deltaX=GetLocationX(udg_glaive_location[udg_X])-GetUnitX(udg_herO[udg_X])
+    local real deltaY=GetLocationY(udg_glaive_location[udg_X])-GetUnitY(udg_herO[udg_X])
+    if ( SquareRoot(deltaX*deltaX+deltaY*deltaY) > 1300.00 ) then
+        return true
+    endif
+    if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func016Func001Func002C() ) then
+        return true
+    endif
+    return false
+endfunction
+
+function Trig_HERO_Throw_Glaive_Loop_Actions takes nothing returns nothing
+    local location nextLocation
+    local real deltaX
+    local real deltaY
+    local boolean anyActive=false
+    set udg_X=1
+    loop
+        exitwhen udg_X > 12
+        if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001C() ) and udg_dummy_glaive[udg_X] != null then
+            // COUNT HOPS
+            set udg_glaive_hops[udg_X]=( udg_glaive_hops[udg_X] + 1 )
+            // SET ANGLE
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func004C() ) then
+                set udg_glaive_degree[udg_X]=( udg_glaive_start_degree[udg_X] - 0.00 )
+            endif
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func005C() ) then
+                set udg_glaive_degree[udg_X]=( udg_glaive_start_degree[udg_X] + 0.00 )
+            endif
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func006C() ) then
+                set udg_glaive_degree[udg_X]=( udg_glaive_start_degree[udg_X] + 0.00 )
+            endif
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func007C() ) then
+                set udg_glaive_degree[udg_X]=( udg_glaive_start_degree[udg_X] + 0.00 )
+            endif
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func008C() ) then
+                set udg_glaive_degree[udg_X]=( udg_glaive_start_degree[udg_X] + 0.00 )
+            endif
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func009C() ) then
+                set deltaX=GetUnitX(udg_herO[udg_X])-GetUnitX(udg_dummy_glaive[udg_X])
+                set deltaY=GetUnitY(udg_herO[udg_X])-GetUnitY(udg_dummy_glaive[udg_X])
+                set udg_glaive_degree[udg_X]=Atan2(deltaY, deltaX)*bj_RADTODEG
+            endif
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func010C() ) then
+                set deltaX=GetUnitX(udg_herO[udg_X])-GetUnitX(udg_dummy_glaive[udg_X])
+                set deltaY=GetUnitY(udg_herO[udg_X])-GetUnitY(udg_dummy_glaive[udg_X])
+                set udg_glaive_degree[udg_X]=Atan2(deltaY, deltaX)*bj_RADTODEG
+            endif
+            // MOVE GLAIVE
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func013C() ) then
+                set nextLocation=GetUnitLoc(udg_herO[udg_X])
+                set udg_glaive_active[udg_X]=false
+            else
+                set nextLocation=PolarProjectionBJ(udg_glaive_location[udg_X], 20.00, udg_glaive_degree[udg_X])
+            endif
+            if udg_glaive_location[udg_X] != null then
+                call RemoveLocation(udg_glaive_location[udg_X])
+            endif
+            set udg_glaive_location[udg_X]=nextLocation
+            set nextLocation=null
+            call SetUnitPositionLocFacingBJ(udg_dummy_glaive[udg_X], udg_glaive_location[udg_X], 0.00)
+            // FINISH UP IF EITHER TOO FAR OR CLOSED UP
+            if ( Trig_HERO_Throw_Glaive_Loop_Func001Func001Func016C() ) then
+                call RemoveUnit(udg_dummy_glaive[udg_X])
+                set udg_dummy_glaive[udg_X]=null
+                set udg_glaive_active[udg_X]=false
+                call RemoveLocation(udg_glaive_location[udg_X])
+                set udg_glaive_location[udg_X]=null
+            endif
+            if udg_dummy_glaive[udg_X] != null then
+                set anyActive=true
+            endif
+        endif
+        set udg_X=udg_X + 1
+    endloop
+    if not anyActive then
+        call DisableTrigger(GetTriggeringTrigger())
+    endif
+    set nextLocation=null
+endfunction
